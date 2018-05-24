@@ -1,0 +1,25 @@
+{
+  "name": "purjs-core",
+  "version": "0.1.0",
+  "description": "PurJS framework core",
+  "main": "index.js",
+  "scripts": {
+    "test": "npm test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/elnawe/purjs.git"
+  },
+  "keywords": [
+    "purjs"
+  ],
+  "author": "Nahuel J. Sacchetti",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/elnawe/purjs/issues"
+  },
+  "homepage": "https://github.com/elnawe/purjs#readme",
+  "dependencies": {
+    "immutable": "^3.8.2"
+  }
+}
