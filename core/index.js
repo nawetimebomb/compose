@@ -1,7 +1,7 @@
 const createComponent = require("./create-component");
-const createElement = require("./create-element");
+const render = require("./render");
 
 module.exports = {
     createComponent: createComponent,
-    createElement: createElement
+    render: render
 };

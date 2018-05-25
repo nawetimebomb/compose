@@ -18,6 +18,8 @@ function PurNode(tagName, properties, children, key) {
             let property = properties[propName];
         }
     }
+
+    this.count = count;
 }
 
 PurNode.prototype.type = type;

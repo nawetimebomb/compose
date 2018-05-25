@@ -5,6 +5,10 @@ const PurText = require("./PurText");
 const purNodeType = "PurNode";
 const purTextType = "PurText";
 
+function isBuffer(element) {
+    return element && element.type === "Buffer";
+}
+
 function isChild(element) {
     return isPurNode(element) || isPurText(element);
 }
@@ -22,6 +26,7 @@ function isPurText(element) {
 }
 
 module.exports = {
+    isBuffer: isBuffer,
     isChild: isChild,
     isChildren: isChildren,
     isPurNode: isPurNode,

@@ -37,4 +37,4 @@ function purJsDemo() {
     ]);
 }
 
-document.body.appendChild(Pur.createElement(purJsDemo()));
+document.body.appendChild(Pur.render(purJsDemo()));

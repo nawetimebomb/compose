@@ -19,6 +19,8 @@ function PurNode(tagName, properties, children, key) {
             let property = properties[propName];
         }
     }
+
+    this.count = count;
 }
 
 PurNode.prototype.type = type;
@@ -91,50 +93,7 @@ function parseChild(child, tag, properties) {
 
 module.exports = createComponent;
 
-},{"./PurNode":1,"./PurText":2,"./errors":5,"./utils":7}],4:[function(require,module,exports){
-// TODO: Add docs
-// element should be a PurNode or PurText.
-const utils = require("./utils");
-
-function createElement(element, context, warning) {
-    let doc = context && context.document || document;
-
-    if (utils.isPurText(element)) {
-        return doc.createTextNode(element.text);
-    } else if (!utils.isPurNode(element)) {
-        if (warning) {
-            warning("Element not valid:", element);
-        }
-
-        return null;
-    }
-
-    let node = doc.createElement(element.tagName);
-    let props = element.properties;
-
-    // TODO: This is only applying string properties. Will error with any other kind of property. There should be a parser in here.
-    for (let propName in props) {
-        let propValue = props[propName];
-
-        node[propName] = propValue;
-    }
-
-    let children = element.children;
-
-    for (let index = 0; index < children.length; index++) {
-        let childNode = createElement(children[index], context, warning);
-
-        if (childNode) {
-            node.appendChild(childNode);
-        }
-    }
-
-    return node;
-}
-
-module.exports = createElement;
-
-},{"./utils":7}],5:[function(require,module,exports){
+},{"./PurNode":1,"./PurText":2,"./errors":4,"./utils":8}],4:[function(require,module,exports){
 function UnexpectedElement(data) {
     let err = new Error();
 
@@ -150,22 +109,119 @@ module.exports = {
     UnexpectedElement: UnexpectedElement
 };
 
-},{}],6:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
+const utils = require("./utils");
+
+function handleBuffers(a, b) {
+    let renderedBufferA = a;
+    let renderedBufferB = b;
+
+    if (utils.isBuffer(b)) {
+        renderedBufferB = renderBuffer(b);
+    }
+
+    if (utils.isBuffer(a)) {
+        rendererdBufferA = renderBuffer(a);
+    }
+
+    return {
+        a: renderedBufferA,
+        b: renderedBufferB
+    };
+}
+
+function renderBuffer(buffer, previous) {
+    let renderedBuffer = buffer.purNode;
+
+    if (!renderedBuffer) {
+        renderedBuffer = buffer.purNode = buffer.render(previous);
+    }
+
+    if (!(utils.isPurNode(renderedBuffer) || utils.isPurText(renderedBuffer))) {
+        throw Error("Not valid node in buffer");
+    }
+
+    return renderedBuffer;
+}
+
+module.exports = handleBuffers;
+
+},{"./utils":8}],6:[function(require,module,exports){
 const createComponent = require("./create-component");
-const createElement = require("./create-element");
+const render = require("./render");
 
 module.exports = {
     createComponent: createComponent,
-    createElement: createElement
+    render: render
 };
 
-},{"./create-component":3,"./create-element":4}],7:[function(require,module,exports){
+},{"./create-component":3,"./render":7}],7:[function(require,module,exports){
+// TODO: Add docs
+// element should be a PurNode or PurText.
+const utils = require("./utils");
+const handleBuffers = require("./handle-buffers");
+
+function render(element, context, errorHandler) {
+    let doc = context || document;
+
+    //element = handleBuffers(element).a;
+
+    if (utils.isPurText(element)) {
+        return doc.createTextNode(element.text);
+    } else if (!utils.isPurNode(element)) {
+        if (errorHandler) {
+            errorHandler("Element not valid:", element);
+        }
+
+        return null;
+    }
+
+    let node = doc.createElement(element.tagName);
+    let props = element.properties;
+
+    // TODO: This is only applying string properties. Will error with any other kind of property. There should be a parser in here.
+    for (let propName in props) {
+        let propValue = props[propName];
+
+        if (propValue === undefined) {
+            // TODO: Should remove property
+        } else if (typeof propValue === "function") {
+            // TODO: Handle functions
+        } else {
+            if (propValue instanceof Object && !(propValue instanceof Array)) {
+                // TODO: Handle object-like props
+            } else {
+                node[propName] = propValue;
+            }
+        }
+    }
+
+    let children = element.children;
+
+    for (let index = 0; index < children.length; index++) {
+        let childNode = render(children[index], context, errorHandler);
+
+        if (childNode) {
+            node.appendChild(childNode);
+        }
+    }
+
+    return node;
+}
+
+module.exports = render;
+
+},{"./handle-buffers":5,"./utils":8}],8:[function(require,module,exports){
 // TODO: Add docs
 const PurNode = require("./PurNode");
 const PurText = require("./PurText");
 
 const purNodeType = "PurNode";
 const purTextType = "PurText";
+
+function isBuffer(element) {
+    return element && element.type === "Buffer";
+}
 
 function isChild(element) {
     return isPurNode(element) || isPurText(element);
@@ -184,13 +240,14 @@ function isPurText(element) {
 }
 
 module.exports = {
+    isBuffer: isBuffer,
     isChild: isChild,
     isChildren: isChildren,
     isPurNode: isPurNode,
     isPurText: isPurText
 };
 
-},{"./PurNode":1,"./PurText":2}],8:[function(require,module,exports){
+},{"./PurNode":1,"./PurText":2}],9:[function(require,module,exports){
 // TODO: Handle a tree for the Virtual DOM
 // TODO: Add logic to push Virtual DOM tree into the real DOM
 // TODO: Add logic to patch the DOM with the Virtual DOM
@@ -230,6 +287,6 @@ function purJsDemo() {
     ]);
 }
 
-document.body.appendChild(Pur.createElement(purJsDemo()));
+document.body.appendChild(Pur.render(purJsDemo()));
 
-},{"../core":6}]},{},[8]);
+},{"../core":6}]},{},[9]);
