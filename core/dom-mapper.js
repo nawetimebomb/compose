@@ -1,3 +1,4 @@
+// REFACTOR THIS
 const noChild = {};
 
 function domMapper(rootNode, tree, indices, nodes) {

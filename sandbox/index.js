@@ -3,7 +3,8 @@
 // TODO: Add logic to patch the DOM with the Virtual DOM
 // TODO: Add support to functions and object-like properties.
 
-const Pur = require("../core");
+const Cmps = require("../core");
+const Header = require("./Header");
 
 // A semi functional state, just for testing
 let numberOfButtons = 0;
@@ -15,26 +16,32 @@ function withIndex(component) {
     return component(numberOfButtons);
 }
 
+function log(text) {
+    console.log(text);
+}
+
 // A custom button componentn
 function button (state) {
     count = state || "";
 
-    return Pur.createComponent("button", {
-        className: "my-button-class"
+    return Cmps.createComponent("button", {
+        className: "my-button-class",
+        onClick: log,
     }, ["My Button Component", count]);
 }
 
 // A purJsDemo Component
 function purJsDemo() {
-    return Pur.createComponent("div", {
+    return Cmps.createComponent("div", {
         className: "my-div"
     }, [
-        "This is a PurJS Demo: ",
+        Header(),
+        "This is a Cmps Demo: ",
         withIndex(button),
         withIndex(button),
         button(),
-        Pur.createComponent("button", "I Love PurJS")
+        Cmps.createComponent("button", "I Love Cmps")
     ]);
 }
 
-document.body.appendChild(Pur.render(purJsDemo()));
+document.body.appendChild(Cmps.render(purJsDemo()));

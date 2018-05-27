@@ -1,34 +1,31 @@
 // TODO: Add docs
-const PurNode = require("./PurNode");
-const PurText = require("./PurText");
-
-const purNodeType = "PurNode";
-const purTextType = "PurText";
+const Component = require("./Component");
+const Text = require("./Text");
 
 function isBuffer(element) {
     return element && element.type === "Buffer";
 }
 
 function isChild(element) {
-    return isPurNode(element) || isPurText(element);
+    return isComponent(element) || isText(element);
 }
 
 function isChildren(elements) {
     return typeof elements === "string" || Array.isArray(elements) || isChild(elements);
 }
 
-function isPurNode(element) {
-    return element.type === purNodeType;
+function isComponent(element) {
+    return element.type === "Component";
 }
 
-function isPurText(element) {
-    return element.type === purTextType;
+function isText(element) {
+    return element.type === "Text";
 }
 
 module.exports = {
     isBuffer: isBuffer,
     isChild: isChild,
     isChildren: isChildren,
-    isPurNode: isPurNode,
-    isPurText: isPurText
+    isComponent: isComponent,
+    isText: isText
 };

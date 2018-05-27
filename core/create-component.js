@@ -1,6 +1,6 @@
 const errors = require("./errors");
-const PurNode = require("./PurNode");
-const PurText = require("./PurText");
+const Component = require("./Component");
+const Text = require("./Text");
 const utils = require("./utils");
 
 function createComponent(tagName, properties, children) {
@@ -31,12 +31,12 @@ function createComponent(tagName, properties, children) {
         }
     }
 
-    return new PurNode(tag, props, childNodes, key);
+    return new Component(tag, props, childNodes, key);
 }
 
 function parseChild(child, tag, properties) {
     if (typeof child === "string" || typeof child === "number") {
-        return new PurText(child);
+        return new Text(child);
     } else if (utils.isChild(child)) {
         return child;
     } else if (child === undefined || child === null) {

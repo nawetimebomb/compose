@@ -1,5 +1,5 @@
 // TODO: Add docs
-// element should be a PurNode or PurText.
+// element should be a Component or Text.
 const utils = require("./utils");
 const handleBuffers = require("./handle-buffers");
 
@@ -8,11 +8,11 @@ function render(element, context, errorHandler) {
 
     //element = handleBuffers(element).a;
 
-    if (utils.isPurText(element)) {
+    if (utils.isText(element)) {
         return doc.createTextNode(element.text);
-    } else if (!utils.isPurNode(element)) {
+    } else if (!utils.isComponent(element)) {
         if (errorHandler) {
-            errorHandler("Element not valid:", element);
+            errorHandler("Element not valid: ", element);
         }
 
         return null;
@@ -25,16 +25,38 @@ function render(element, context, errorHandler) {
     for (let propName in props) {
         let propValue = props[propName];
 
-        if (propValue === undefined) {
-            // TODO: Should remove property
-        } else if (typeof propValue === "function") {
-            // TODO: Handle functions
-        } else {
+        switch (typeof propValue) {
+        case undefined:
+            // TODO should remove class
+            console.log("prop should be removed");
+            break;
+        case "function":
+            // TODO: should hook function
+            console.log("prop is a function");
+            break;
+        case "object":
+            // TODO should handle arrays and objects
             if (propValue instanceof Object && !(propValue instanceof Array)) {
-                // TODO: Handle object-like props
+                // TODO should parse props, now I'm just assigning by default
+                console.log("prop is an object", propName, propValue);
+                let result = [];
+
+                for (let key in propValue) {
+                    let styleKey = getStyleDOMKey(key);
+
+                    result.push(`${styleKey}:${propValue[key]};`);
+                }
+
+                node[propName] = result.join(" ");
+            } else if (propValue instanceof Array) {
+                // TODO should handle array props
             } else {
-                node[propName] = propValue;
+                // TODO prop is null, should be removed?
             }
+            break;
+        case "string":
+            node[propName] = propValue;
+            break;
         }
     }
 
@@ -49,6 +71,26 @@ function render(element, context, errorHandler) {
     }
 
     return node;
+}
+
+function getStyleDOMKey(key) {
+    const styleKey = {
+        backgroundColor: "background-color",
+
+        flexDirection: "flex-direction",
+
+        marginBottom: "margin-bottom",
+        marginLeft: "margin-left",
+        marginRight: "margin-right",
+        marginTop: "margin-top",
+
+        paddingBottom: "padding-bottom",
+        paddingLeft: "padding-left",
+        paddingRight: "padding-right",
+        paddingTop: "padding-top"
+    };
+
+    return styleKey[key] || key;
 }
 
 module.exports = render;

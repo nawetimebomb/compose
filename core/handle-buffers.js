@@ -25,7 +25,7 @@ function renderBuffer(buffer, previous) {
         renderedBuffer = buffer.purNode = buffer.render(previous);
     }
 
-    if (!(utils.isPurNode(renderedBuffer) || utils.isPurText(renderedBuffer))) {
+    if (!(utils.isComponent(renderedBuffer) || utils.isText(renderedBuffer))) {
         throw Error("Not valid node in buffer");
     }
 

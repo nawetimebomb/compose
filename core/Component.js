@@ -1,9 +1,9 @@
 const emptyProperties = {};
 const emptyChildren = [];
 
-const type = "PurNode";
+const type = "Component";
 
-function PurNode(tagName, properties, children, key) {
+function Component(tagName, properties, children, key) {
     this.tagName = tagName;
     this.properties = properties || emptyProperties;
     this.children = children || emptyChildren;
@@ -22,6 +22,6 @@ function PurNode(tagName, properties, children, key) {
     this.count = count;
 }
 
-PurNode.prototype.type = type;
+Component.prototype.type = type;
 
-module.exports = PurNode;
+module.exports = Component;

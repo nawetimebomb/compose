@@ -2,9 +2,9 @@
 const emptyProperties = {};
 const emptyChildren = [];
 
-const type = "PurNode";
+const type = "Component";
 
-function PurNode(tagName, properties, children, key) {
+function Component(tagName, properties, children, key) {
     this.tagName = tagName;
     this.properties = properties || emptyProperties;
     this.children = children || emptyChildren;
@@ -23,23 +23,23 @@ function PurNode(tagName, properties, children, key) {
     this.count = count;
 }
 
-PurNode.prototype.type = type;
+Component.prototype.type = type;
 
-module.exports = PurNode;
+module.exports = Component;
 
 },{}],2:[function(require,module,exports){
-function PurText(text) {
+function Text(text) {
     this.text = String(text);
 }
 
-PurText.prototype.type = "PurText";
+Text.prototype.type = "Text";
 
-module.exports = PurText;
+module.exports = Text;
 
 },{}],3:[function(require,module,exports){
 const errors = require("./errors");
-const PurNode = require("./PurNode");
-const PurText = require("./PurText");
+const Component = require("./Component");
+const Text = require("./Text");
 const utils = require("./utils");
 
 function createComponent(tagName, properties, children) {
@@ -70,12 +70,12 @@ function createComponent(tagName, properties, children) {
         }
     }
 
-    return new PurNode(tag, props, childNodes, key);
+    return new Component(tag, props, childNodes, key);
 }
 
 function parseChild(child, tag, properties) {
     if (typeof child === "string" || typeof child === "number") {
-        return new PurText(child);
+        return new Text(child);
     } else if (utils.isChild(child)) {
         return child;
     } else if (child === undefined || child === null) {
@@ -93,12 +93,12 @@ function parseChild(child, tag, properties) {
 
 module.exports = createComponent;
 
-},{"./PurNode":1,"./PurText":2,"./errors":4,"./utils":8}],4:[function(require,module,exports){
+},{"./Component":1,"./Text":2,"./errors":4,"./utils":8}],4:[function(require,module,exports){
 function UnexpectedElement(data) {
     let err = new Error();
 
     // Fix error message.
-    err.type = "purjs.unexpected.element";
+    err.type = "cmps.unexpected.element";
     err.message = "Trying to render unexpected element " + data.element + "."
     err.node = data.element;
 
@@ -137,7 +137,7 @@ function renderBuffer(buffer, previous) {
         renderedBuffer = buffer.purNode = buffer.render(previous);
     }
 
-    if (!(utils.isPurNode(renderedBuffer) || utils.isPurText(renderedBuffer))) {
+    if (!(utils.isComponent(renderedBuffer) || utils.isText(renderedBuffer))) {
         throw Error("Not valid node in buffer");
     }
 
@@ -157,7 +157,7 @@ module.exports = {
 
 },{"./create-component":3,"./render":7}],7:[function(require,module,exports){
 // TODO: Add docs
-// element should be a PurNode or PurText.
+// element should be a Component or Text.
 const utils = require("./utils");
 const handleBuffers = require("./handle-buffers");
 
@@ -166,11 +166,11 @@ function render(element, context, errorHandler) {
 
     //element = handleBuffers(element).a;
 
-    if (utils.isPurText(element)) {
+    if (utils.isText(element)) {
         return doc.createTextNode(element.text);
-    } else if (!utils.isPurNode(element)) {
+    } else if (!utils.isComponent(element)) {
         if (errorHandler) {
-            errorHandler("Element not valid:", element);
+            errorHandler("Element not valid: ", element);
         }
 
         return null;
@@ -183,16 +183,38 @@ function render(element, context, errorHandler) {
     for (let propName in props) {
         let propValue = props[propName];
 
-        if (propValue === undefined) {
-            // TODO: Should remove property
-        } else if (typeof propValue === "function") {
-            // TODO: Handle functions
-        } else {
+        switch (typeof propValue) {
+        case undefined:
+            // TODO should remove class
+            console.log("prop should be removed");
+            break;
+        case "function":
+            // TODO: should hook function
+            console.log("prop is a function");
+            break;
+        case "object":
+            // TODO should handle arrays and objects
             if (propValue instanceof Object && !(propValue instanceof Array)) {
-                // TODO: Handle object-like props
+                // TODO should parse props, now I'm just assigning by default
+                console.log("prop is an object", propName, propValue);
+                let result = [];
+
+                for (let key in propValue) {
+                    let styleKey = getStyleDOMKey(key);
+
+                    result.push(`${styleKey}:${propValue[key]};`);
+                }
+
+                node[propName] = result.join(" ");
+            } else if (propValue instanceof Array) {
+                // TODO should handle array props
             } else {
-                node[propName] = propValue;
+                // TODO prop is null, should be removed?
             }
+            break;
+        case "string":
+            node[propName] = propValue;
+            break;
         }
     }
 
@@ -209,51 +231,89 @@ function render(element, context, errorHandler) {
     return node;
 }
 
+function getStyleDOMKey(key) {
+    const styleKey = {
+        backgroundColor: "background-color",
+
+        flexDirection: "flex-direction",
+
+        marginBottom: "margin-bottom",
+        marginLeft: "margin-left",
+        marginRight: "margin-right",
+        marginTop: "margin-top",
+
+        paddingBottom: "padding-bottom",
+        paddingLeft: "padding-left",
+        paddingRight: "padding-right",
+        paddingTop: "padding-top"
+    };
+
+    return styleKey[key] || key;
+}
+
 module.exports = render;
 
 },{"./handle-buffers":5,"./utils":8}],8:[function(require,module,exports){
 // TODO: Add docs
-const PurNode = require("./PurNode");
-const PurText = require("./PurText");
-
-const purNodeType = "PurNode";
-const purTextType = "PurText";
+const Component = require("./Component");
+const Text = require("./Text");
 
 function isBuffer(element) {
     return element && element.type === "Buffer";
 }
 
 function isChild(element) {
-    return isPurNode(element) || isPurText(element);
+    return isComponent(element) || isText(element);
 }
 
 function isChildren(elements) {
     return typeof elements === "string" || Array.isArray(elements) || isChild(elements);
 }
 
-function isPurNode(element) {
-    return element.type === purNodeType;
+function isComponent(element) {
+    return element.type === "Component";
 }
 
-function isPurText(element) {
-    return element.type === purTextType;
+function isText(element) {
+    return element.type === "Text";
 }
 
 module.exports = {
     isBuffer: isBuffer,
     isChild: isChild,
     isChildren: isChildren,
-    isPurNode: isPurNode,
-    isPurText: isPurText
+    isComponent: isComponent,
+    isText: isText
 };
 
-},{"./PurNode":1,"./PurText":2}],9:[function(require,module,exports){
+},{"./Component":1,"./Text":2}],9:[function(require,module,exports){
+const Cmps = require("../core");
+
+function Header() {
+    return Cmps.createComponent("div", {
+        className: "header",
+        style: {
+            backgroundColor: "blue",
+            color: "yellow",
+            paddingLeft: "10px"
+        }
+    }, Title());
+}
+
+function Title() {
+    return Cmps.createComponent("h1", "CMPS");
+}
+
+module.exports = Header;
+
+},{"../core":6}],10:[function(require,module,exports){
 // TODO: Handle a tree for the Virtual DOM
 // TODO: Add logic to push Virtual DOM tree into the real DOM
 // TODO: Add logic to patch the DOM with the Virtual DOM
 // TODO: Add support to functions and object-like properties.
 
-const Pur = require("../core");
+const Cmps = require("../core");
+const Header = require("./Header");
 
 // A semi functional state, just for testing
 let numberOfButtons = 0;
@@ -265,28 +325,34 @@ function withIndex(component) {
     return component(numberOfButtons);
 }
 
+function log(text) {
+    console.log(text);
+}
+
 // A custom button componentn
 function button (state) {
     count = state || "";
 
-    return Pur.createComponent("button", {
-        className: "my-button-class"
+    return Cmps.createComponent("button", {
+        className: "my-button-class",
+        onClick: log,
     }, ["My Button Component", count]);
 }
 
 // A purJsDemo Component
 function purJsDemo() {
-    return Pur.createComponent("div", {
+    return Cmps.createComponent("div", {
         className: "my-div"
     }, [
-        "This is a PurJS Demo: ",
+        Header(),
+        "This is a Cmps Demo: ",
         withIndex(button),
         withIndex(button),
         button(),
-        Pur.createComponent("button", "I Love PurJS")
+        Cmps.createComponent("button", "I Love Cmps")
     ]);
 }
 
-document.body.appendChild(Pur.render(purJsDemo()));
+document.body.appendChild(Cmps.render(purJsDemo()));
 
-},{"../core":6}]},{},[9]);
+},{"../core":6,"./Header":9}]},{},[10]);

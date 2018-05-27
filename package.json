@@ -1,5 +1,5 @@
 {
-  "name": "purjs",
+  "name": "cmps",
   "version": "0.1.0",
   "description": "Pure functional JavaScript framework",
   "main": "index.js",
@@ -10,19 +10,19 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/elnawe/purjs.git"
+    "url": "git+https://github.com/elnawe/cmps.git"
   },
   "keywords": [
-    "purjs",
+    "cmps",
     "javascript",
     "framework"
   ],
   "author": "Nahuel J. Sacchetti",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/elnawe/purjs/issues"
+    "url": "https://github.com/elnawe/cmps/issues"
   },
-  "homepage": "https://github.com/elnawe/purjs#readme",
+  "homepage": "https://github.com/elnawe/cmps#readme",
   "dependencies": {
     "immutable": "^3.8.2"
   },
