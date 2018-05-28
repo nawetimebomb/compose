@@ -1,18 +1,20 @@
 const errors = require("./errors");
 const Component = require("./Component");
+const propertiesParser = require("./properties-parser");
 const Text = require("./Text");
 const utils = require("./utils");
 
 function createComponent(tagName, properties, children) {
     let childNodes = [];
-    let tags, props, key, namespace;
+    let tag, props, key, namespace;
 
+    // If second parameter is children instead of prop.
     if (!children && utils.isChildren(properties)) {
         children = properties;
         props = {};
     }
 
-    props = props || properties || {};
+    props = propertiesParser(props || properties || {});
     tag = tagName;
 
     // Support and save key.
@@ -35,13 +37,18 @@ function createComponent(tagName, properties, children) {
 }
 
 function parseChild(child, tag, properties) {
-    if (typeof child === "string" || typeof child === "number") {
+    switch(typeof child) {
+    case "string":
         return new Text(child);
-    } else if (utils.isChild(child)) {
-        return child;
-    } else if (child === undefined || child === null) {
+    case "number":
+        return new Text(child);
+    case "function":
+        if (utils.isChild(child())) return child();
+    case "object":
+        if (utils.isChild(child)) return child;
+    case "undefined":
         return;
-    } else {
+    default:
         throw errors.UnexpectedElement({
             element: child,
             parent: {

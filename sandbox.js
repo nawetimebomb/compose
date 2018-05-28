@@ -1,4 +1,6 @@
 (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
+const EventPropertyHook = require("./EventPropertyHook");
+
 const emptyProperties = {};
 const emptyChildren = [];
 
@@ -17,17 +19,95 @@ function Component(tagName, properties, children, key) {
     for (let propName in properties) {
         if (properties.hasOwnProperty(propName)) {
             let property = properties[propName];
+
+            if (isEvent(property)) {
+                if (!hooks) {
+                    hooks = {};
+                }
+
+                hooks[propName] = property;
+            }
         }
     }
 
     this.count = count;
+    this.hooks = hooks;
+}
+
+function isEvent(prop) {
+    return prop instanceof EventPropertyHook && prop.attach && prop.detach;
 }
 
 Component.prototype.type = type;
 
 module.exports = Component;
 
-},{}],2:[function(require,module,exports){
+},{"./EventPropertyHook":3}],2:[function(require,module,exports){
+const render = require("./render");
+const utils = require("./utils");
+
+/**
+ * ComposeApplication
+ * @param {Component} rootComponent - Root Component that will be rendered.
+ * @param {HTMLElement | String} ownerDOMElement - An HTMLElement or String that hosts the app.
+ * @param {Object} options - The options object.
+ * @returns {Object} api - Compose api.
+ */
+module.exports = function ComposeApplication(rootComponent, ownerDOMElement, options) {
+    const api = {};
+    let owner = ownerDOMElement;
+    let rootNode;
+
+    if (typeof ownerDOMElement === "string") {
+        owner = document.getElementById(ownerDOMElement);
+    }
+
+    if (owner === undefined || owner === null) {
+        throw Error("Not an owner node");
+    }
+
+    // Safety check the component
+
+    if (rootComponent && utils.isChild(rootComponent)) {
+        owner.appendChild(render(rootComponent));
+    } else {
+        throw Error("Not a component");
+    }
+
+    return api;
+};
+
+},{"./render":13,"./utils":14}],3:[function(require,module,exports){
+const EventStore = require("ev-store");
+
+function EventPropertyHook(propertyValue) {
+    if (!(this instanceof EventPropertyHook)) {
+        return new EventPropertyHook(propertyValue);
+    }
+
+    this.value = propertyValue;
+    console.log(this.value);
+}
+
+EventPropertyHook.prototype.attach = function (node, propertyName) {
+    let elementEvents = EventStore(node);
+    let eventName = propertyName.substr(2).toLowerCase(); // onClick -> click
+    console.log("Event " + propertyName + " attached with value: ", this.value);
+
+    elementEvents[eventName] = this.value;
+}
+
+EventPropertyHook.prototype.detach = function (node, propertyName) {
+    let elementEvents = EventStore(node);
+    let eventName = propertyName.substr(2).toLowerCase();
+    console.log("Event " + propertyName + " detached");
+
+    elementEvents[eventName] = undefined;
+}
+
+module.exports = EventPropertyHook;
+
+},{"ev-store":9}],4:[function(require,module,exports){
 function Text(text) {
     this.text = String(text);
 }
@@ -36,22 +116,24 @@ Text.prototype.type = "Text";
 
 module.exports = Text;
 
-},{}],3:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 const errors = require("./errors");
 const Component = require("./Component");
+const propertiesParser = require("./properties-parser");
 const Text = require("./Text");
 const utils = require("./utils");
 
 function createComponent(tagName, properties, children) {
     let childNodes = [];
-    let tags, props, key, namespace;
+    let tag, props, key, namespace;
 
+    // If second parameter is children instead of prop.
     if (!children && utils.isChildren(properties)) {
         children = properties;
         props = {};
     }
 
-    props = props || properties || {};
+    props = propertiesParser(props || properties || {});
     tag = tagName;
 
     // Support and save key.
@@ -74,13 +156,18 @@ function createComponent(tagName, properties, children) {
 }
 
 function parseChild(child, tag, properties) {
-    if (typeof child === "string" || typeof child === "number") {
+    switch(typeof child) {
+    case "string":
         return new Text(child);
-    } else if (utils.isChild(child)) {
-        return child;
-    } else if (child === undefined || child === null) {
+    case "number":
+        return new Text(child);
+    case "function":
+        if (utils.isChild(child())) return child();
+    case "object":
+        if (utils.isChild(child)) return child;
+    case "undefined":
         return;
-    } else {
+    default:
         throw errors.UnexpectedElement({
             element: child,
             parent: {
@@ -93,7 +180,7 @@ function parseChild(child, tag, properties) {
 
 module.exports = createComponent;
 
-},{"./Component":1,"./Text":2,"./errors":4,"./utils":8}],4:[function(require,module,exports){
+},{"./Component":1,"./Text":4,"./errors":6,"./properties-parser":12,"./utils":14}],6:[function(require,module,exports){
 function UnexpectedElement(data) {
     let err = new Error();
 
@@ -109,7 +196,7 @@ module.exports = {
     UnexpectedElement: UnexpectedElement
 };
 
-},{}],5:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 const utils = require("./utils");
 
 function handleBuffers(a, b) {
@@ -146,89 +233,134 @@ function renderBuffer(buffer, previous) {
 
 module.exports = handleBuffers;
 
-},{"./utils":8}],6:[function(require,module,exports){
+},{"./utils":14}],8:[function(require,module,exports){
+const ComposeApplication = require("./ComposeApplication");
 const createComponent = require("./create-component");
 const render = require("./render");
 
 module.exports = {
-    createComponent: createComponent,
-    render: render
+    application: ComposeApplication,
+    component: createComponent
 };
 
-},{"./create-component":3,"./render":7}],7:[function(require,module,exports){
-// TODO: Add docs
-// element should be a Component or Text.
-const utils = require("./utils");
-const handleBuffers = require("./handle-buffers");
+},{"./ComposeApplication":2,"./create-component":5,"./render":13}],9:[function(require,module,exports){
+'use strict';
 
-function render(element, context, errorHandler) {
-    let doc = context || document;
+var OneVersionConstraint = require('individual/one-version');
 
-    //element = handleBuffers(element).a;
+var MY_VERSION = '7';
+OneVersionConstraint('ev-store', MY_VERSION);
 
-    if (utils.isText(element)) {
-        return doc.createTextNode(element.text);
-    } else if (!utils.isComponent(element)) {
-        if (errorHandler) {
-            errorHandler("Element not valid: ", element);
-        }
+var hashKey = '__EV_STORE_KEY@' + MY_VERSION;
 
-        return null;
+module.exports = EvStore;
+
+function EvStore(elem) {
+    var hash = elem[hashKey];
+
+    if (!hash) {
+        hash = elem[hashKey] = {};
     }
 
-    let node = doc.createElement(element.tagName);
-    let props = element.properties;
+    return hash;
+}
 
-    // TODO: This is only applying string properties. Will error with any other kind of property. There should be a parser in here.
-    for (let propName in props) {
-        let propValue = props[propName];
+},{"individual/one-version":11}],10:[function(require,module,exports){
+(function (global){
+'use strict';
+
+/*global window, global*/
+
+var root = typeof window !== 'undefined' ?
+    window : typeof global !== 'undefined' ?
+    global : {};
+
+module.exports = Individual;
+
+function Individual(key, value) {
+    if (key in root) {
+        return root[key];
+    }
+
+    root[key] = value;
+
+    return value;
+}
+
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{}],11:[function(require,module,exports){
+'use strict';
+
+var Individual = require('./index.js');
+
+module.exports = OneVersion;
+
+function OneVersion(moduleName, version, defaultValue) {
+    var key = '__INDIVIDUAL_ONE_VERSION_' + moduleName;
+    var enforceKey = key + '_ENFORCE_SINGLETON';
+
+    var versionValue = Individual(enforceKey, version);
+
+    if (versionValue !== version) {
+        throw new Error('Can only have one copy of ' +
+            moduleName + '.\n' +
+            'You already have version ' + versionValue +
+            ' installed.\n' +
+            'This means you cannot install version ' + version);
+    }
+
+    return Individual(key, defaultValue);
+}
+
+},{"./index.js":10}],12:[function(require,module,exports){
+const EventPropertyHook = require("./EventPropertyHook");
+
+/**
+ * Properties Parser
+ * @description Parses properties and understand which kind of property is and what should do in the Component.
+ * @return {Object} a properties object to assign to the Component.
+ */
+function propertiesParser(properties) {
+    let result = {};
+
+    for (let propName in properties) {
+        const propValue = properties[propName];
 
         switch (typeof propValue) {
-        case undefined:
-            // TODO should remove class
+        case "undefined":
+            // TODO should remove prop
             console.log("prop should be removed");
             break;
         case "function":
-            // TODO: should hook function
-            console.log("prop is a function");
+            // TODO: Perform this better.
+            result[propName.toLowerCase()] = propValue;
             break;
         case "object":
-            // TODO should handle arrays and objects
             if (propValue instanceof Object && !(propValue instanceof Array)) {
-                // TODO should parse props, now I'm just assigning by default
-                console.log("prop is an object", propName, propValue);
-                let result = [];
-
-                for (let key in propValue) {
-                    let styleKey = getStyleDOMKey(key);
-
-                    result.push(`${styleKey}:${propValue[key]};`);
-                }
-
-                node[propName] = result.join(" ");
+                if (propName === "style") result[propName] = parseStyleProperty(propValue);
             } else if (propValue instanceof Array) {
-                // TODO should handle array props
-            } else {
-                // TODO prop is null, should be removed?
+                result[propName] = propValue.join(" ");
             }
             break;
         case "string":
-            node[propName] = propValue;
+            result[propName] = propValue;
             break;
         }
     }
 
-    let children = element.children;
+    return result;
+}
 
-    for (let index = 0; index < children.length; index++) {
-        let childNode = render(children[index], context, errorHandler);
+function parseStyleProperty(styleProperties) {
+    let style = [];
 
-        if (childNode) {
-            node.appendChild(childNode);
-        }
+    for (let key in styleProperties) {
+        let styleKey = getStyleDOMKey(key);
+
+        style.push(`${styleKey}:${styleProperties[key]};`);
     }
 
-    return node;
+    return style.join(" ");
 }
 
 function getStyleDOMKey(key) {
@@ -251,9 +383,70 @@ function getStyleDOMKey(key) {
     return styleKey[key] || key;
 }
 
+module.exports = propertiesParser;
+
+},{"./EventPropertyHook":3}],13:[function(require,module,exports){
+// TODO: Add docs
+// TODO This will be part of the .application method.
+// element should be a Component or Text.
+const EventPropertyHook = require("./EventPropertyHook");
+const propertiesParser = require("./properties-parser");
+const utils = require("./utils");
+const handleBuffers = require("./handle-buffers");
+
+function render(element, context, errorHandler) {
+    let doc = context || document;
+
+    if (typeof element === "function") {
+        element = element();
+    }
+
+    //element = handleBuffers(element).a;
+
+    if (utils.isText(element)) {
+        return doc.createTextNode(element.text);
+    } else if (!utils.isComponent(element)) {
+        if (errorHandler) {
+            errorHandler("Element not valid: ", element);
+        }
+
+        return null;
+    }
+
+    let node = doc.createElement(element.tagName);
+    let props = element.properties;
+
+    // Add properties to the node.
+    for (let propName in props) {
+        const propValue = props[propName];
+
+        if (propValue === undefined) {
+            // TODO: check this! Should be safer
+            node[propName] = undefined;
+        } else if (propValue instanceof EventPropertyHook && propValue.attach) {
+            node[propName] = undefined;
+            propValue.attach(node, propName);
+        } else {
+            node[propName] = props[propName];
+        }
+    }
+
+    let children = element.children;
+
+    for (let index = 0; index < children.length; index++) {
+        let childNode = render(children[index], context, errorHandler);
+
+        if (childNode) {
+            node.appendChild(childNode);
+        }
+    }
+
+    return node;
+}
+
 module.exports = render;
 
-},{"./handle-buffers":5,"./utils":8}],8:[function(require,module,exports){
+},{"./EventPropertyHook":3,"./handle-buffers":7,"./properties-parser":12,"./utils":14}],14:[function(require,module,exports){
 // TODO: Add docs
 const Component = require("./Component");
 const Text = require("./Text");
@@ -263,7 +456,7 @@ function isBuffer(element) {
 }
 
 function isChild(element) {
-    return isComponent(element) || isText(element);
+    return isComponent(element) || isText(element) || (typeof element === "function" && isChild(element()));
 }
 
 function isChildren(elements) {
@@ -286,33 +479,33 @@ module.exports = {
     isText: isText
 };
 
-},{"./Component":1,"./Text":2}],9:[function(require,module,exports){
-const Cmps = require("../core");
+},{"./Component":1,"./Text":4}],15:[function(require,module,exports){
+const Compose = require("../core");
 
 function Header() {
-    return Cmps.createComponent("div", {
+    return Compose.component("div", {
         className: "header",
         style: {
             backgroundColor: "blue",
             color: "yellow",
             paddingLeft: "10px"
         }
-    }, Title());
+    }, Title);
 }
 
 function Title() {
-    return Cmps.createComponent("h1", "CMPS");
+    return Compose.component("h1", "CMPS");
 }
 
 module.exports = Header;
 
-},{"../core":6}],10:[function(require,module,exports){
+},{"../core":8}],16:[function(require,module,exports){
 // TODO: Handle a tree for the Virtual DOM
 // TODO: Add logic to push Virtual DOM tree into the real DOM
 // TODO: Add logic to patch the DOM with the Virtual DOM
 // TODO: Add support to functions and object-like properties.
 
-const Cmps = require("../core");
+const Compose = require("../core");
 const Header = require("./Header");
 
 // A semi functional state, just for testing
@@ -325,34 +518,46 @@ function withIndex(component) {
     return component(numberOfButtons);
 }
 
-function log(text) {
-    console.log(text);
+function log() {
+    console.log("My button is clicked");
 }
 
-// A custom button componentn
+// A custom button component
 function button (state) {
     count = state || "";
 
-    return Cmps.createComponent("button", {
+    return Compose.component("button", {
         className: "my-button-class",
-        onClick: log,
+        id: "test",
+        onclick: () => {
+            log();
+        }
     }, ["My Button Component", count]);
 }
 
-// A purJsDemo Component
-function purJsDemo() {
-    return Cmps.createComponent("div", {
+// A Compose framework demo Component
+function ComposeDemo() {
+    return Compose.component("div", {
         className: "my-div"
     }, [
         Header(),
-        "This is a Cmps Demo: ",
-        withIndex(button),
-        withIndex(button),
+        "This is a Compose Demo: ",
         button(),
-        Cmps.createComponent("button", "I Love Cmps")
+        Compose.component("button", "I Love Compose")
     ]);
 }
 
-document.body.appendChild(Cmps.render(purJsDemo()));
+const MyProgram = Compose.application(ComposeDemo, document.getElementById("root"));
 
-},{"../core":6,"./Header":9}]},{},[10]);
+/*
+Compose.application = function (rootComponent, DOMNode, options);
+rootComponent: Layout component or routes,
+DOMNode: Element where the app will be rendered.
+options: Object
+
+   const MyProgram = Compose.application(MyComponent, document.getElementById("root"), {
+       update:
+   });
+*/
+
+},{"../core":8,"./Header":15}]},{},[16]);

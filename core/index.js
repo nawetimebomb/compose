@@ -1,7 +1,8 @@
+const ComposeApplication = require("./ComposeApplication");
 const createComponent = require("./create-component");
 const render = require("./render");
 
 module.exports = {
-    createComponent: createComponent,
-    render: render
+    application: ComposeApplication,
+    component: createComponent
 };

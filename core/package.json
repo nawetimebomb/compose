@@ -1,5 +1,5 @@
 {
-  "name": "@cmps/core",
+  "name": "@compose/core",
   "version": "0.1.0",
   "description": "Cmps framework core",
   "main": "index.js",
@@ -20,6 +20,7 @@
   },
   "homepage": "https://github.com/elnawe/cmps#readme",
   "dependencies": {
+    "ev-store": "^7.0.0",
     "immutable": "^3.8.2"
   },
   "devDependencies": {}

@@ -7,7 +7,7 @@ function isBuffer(element) {
 }
 
 function isChild(element) {
-    return isComponent(element) || isText(element);
+    return isComponent(element) || isText(element) || (typeof element === "function" && isChild(element()));
 }
 
 function isChildren(elements) {

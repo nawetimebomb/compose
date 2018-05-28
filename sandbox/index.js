@@ -3,7 +3,7 @@
 // TODO: Add logic to patch the DOM with the Virtual DOM
 // TODO: Add support to functions and object-like properties.
 
-const Cmps = require("../core");
+const Compose = require("../core");
 const Header = require("./Header");
 
 // A semi functional state, just for testing
@@ -16,32 +16,44 @@ function withIndex(component) {
     return component(numberOfButtons);
 }
 
-function log(text) {
-    console.log(text);
+function log() {
+    console.log("My button is clicked");
 }
 
-// A custom button componentn
+// A custom button component
 function button (state) {
     count = state || "";
 
-    return Cmps.createComponent("button", {
+    return Compose.component("button", {
         className: "my-button-class",
-        onClick: log,
+        id: "test",
+        onclick: () => {
+            log();
+        }
     }, ["My Button Component", count]);
 }
 
-// A purJsDemo Component
-function purJsDemo() {
-    return Cmps.createComponent("div", {
+// A Compose framework demo Component
+function ComposeDemo() {
+    return Compose.component("div", {
         className: "my-div"
     }, [
         Header(),
-        "This is a Cmps Demo: ",
-        withIndex(button),
-        withIndex(button),
+        "This is a Compose Demo: ",
         button(),
-        Cmps.createComponent("button", "I Love Cmps")
+        Compose.component("button", "I Love Compose")
     ]);
 }
 
-document.body.appendChild(Cmps.render(purJsDemo()));
+const MyProgram = Compose.application(ComposeDemo, document.getElementById("root"));
+
+/*
+Compose.application = function (rootComponent, DOMNode, options);
+rootComponent: Layout component or routes,
+DOMNode: Element where the app will be rendered.
+options: Object
+
+   const MyProgram = Compose.application(MyComponent, document.getElementById("root"), {
+       update:
+   });
+*/
