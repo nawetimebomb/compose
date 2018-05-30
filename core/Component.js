@@ -1,5 +1,3 @@
-const EventPropertyHook = require("./EventPropertyHook");
-
 const emptyProperties = {};
 const emptyChildren = [];
 
@@ -18,23 +16,11 @@ function Component(tagName, properties, children, key) {
     for (let propName in properties) {
         if (properties.hasOwnProperty(propName)) {
             let property = properties[propName];
-
-            if (isEvent(property)) {
-                if (!hooks) {
-                    hooks = {};
-                }
-
-                hooks[propName] = property;
-            }
         }
     }
 
     this.count = count;
     this.hooks = hooks;
-}
-
-function isEvent(prop) {
-    return prop instanceof EventPropertyHook && prop.attach && prop.detach;
 }
 
 Component.prototype.type = type;

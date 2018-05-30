@@ -1,10 +1,9 @@
 const errors = require("./errors");
 const Component = require("./Component");
-const propertiesParser = require("./properties-parser");
 const Text = require("./Text");
 const utils = require("./utils");
 
-function createComponent(tagName, properties, children) {
+function ComposeComponent(tagName, properties, children) {
     let childNodes = [];
     let tag, props, key, namespace;
 
@@ -14,7 +13,7 @@ function createComponent(tagName, properties, children) {
         props = {};
     }
 
-    props = propertiesParser(props || properties || {});
+    props = parseProperties(props || properties || {});
     tag = tagName;
 
     // Support and save key.
@@ -59,4 +58,33 @@ function parseChild(child, tag, properties) {
     }
 }
 
-module.exports = createComponent;
+/**
+ * @function parseProperties
+ * @description Parses properties and understand which kind of property is and what should do in the Component.
+ * @return {Object} a properties object to assign to the Component.
+ */
+function parseProperties(properties) {
+    let result = {};
+
+    for (let propName in properties) {
+        const propValue = properties[propName];
+
+        switch (typeof propValue) {
+        case "function":
+            result[propName.toLowerCase()] = propValue;
+        case "object":
+            if (propValue instanceof Object && !(propValue instanceof Array)) {
+                result[propName] = propValue;
+            } else if (propValue instanceof Array) {
+                result[propName] = propValue.join(" ");
+            }
+            break;
+        default:
+            result[propName] = propValue;
+        }
+    }
+
+    return result;
+}
+
+module.exports = ComposeComponent;

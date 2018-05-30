@@ -22,7 +22,6 @@ module.exports = function ComposeApplication(rootComponent, ownerDOMElement, opt
     }
 
     // Safety check the component
-
     if (rootComponent && utils.isChild(rootComponent)) {
         owner.appendChild(render(rootComponent));
     } else {

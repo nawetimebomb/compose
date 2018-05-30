@@ -6,6 +6,7 @@
   "private": true,
   "scripts": {
     "compile": "browserify ./sandbox/index.js -o ./sandbox.js",
+    "compile-hello": "browserify ./src/hellosailor/main.js -o ./src/hellosailor/hellosailor.js",
     "test": "npm test"
   },
   "repository": {
