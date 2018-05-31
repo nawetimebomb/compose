@@ -1,6 +1,7 @@
 // TODO: Add docs
 // TODO This will be part of the .application method.
 // element should be a Component or Text.
+const elnawejs = require("elnawejs");
 const utils = require("./utils");
 const handleBuffers = require("./handle-buffers");
 
@@ -34,7 +35,7 @@ function render(element, context, errorHandler) {
             // TODO: check this! Should be safer
             node[propName] = undefined;
         } else if (typeof propValue === "object") {
-            Object.assign(node[propName], propValue);
+            elnawejs.assign(node[propName], propValue);
         } else {
             node[propName] = props[propName];
         }

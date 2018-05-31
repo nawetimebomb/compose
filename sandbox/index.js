@@ -27,9 +27,7 @@ function button (state) {
     return Compose.component("button", {
         className: "my-button-class",
         id: "test",
-        onclick: () => {
-            log();
-        }
+        onclick: log,
     }, ["My Button Component", count]);
 }
 

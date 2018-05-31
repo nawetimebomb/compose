@@ -138,9 +138,9 @@ function parseProperties(properties) {
         case "function":
             result[propName.toLowerCase()] = propValue;
         case "object":
-            if (propValue instanceof Object && !(propValue instanceof Array)) {
+            if (propValue instanceof Object && !Array.isArray(propValue)) {
                 result[propName] = propValue;
-            } else if (propValue instanceof Array) {
+            } else if (Array.isArray(propValue)) {
                 result[propName] = propValue.join(" ");
             }
             break;
@@ -229,6 +229,7 @@ module.exports = {
 // TODO: Add docs
 // TODO This will be part of the .application method.
 // element should be a Component or Text.
+const elnawejs = require("elnawejs");
 const utils = require("./utils");
 const handleBuffers = require("./handle-buffers");
 
@@ -262,7 +263,7 @@ function render(element, context, errorHandler) {
             // TODO: check this! Should be safer
             node[propName] = undefined;
         } else if (typeof propValue === "object") {
-            Object.assign(node[propName], propValue);
+            elnawejs.assign(node[propName], propValue);
         } else {
             node[propName] = props[propName];
         }
@@ -283,7 +284,7 @@ function render(element, context, errorHandler) {
 
 module.exports = render;
 
-},{"./handle-buffers":6,"./utils":9}],9:[function(require,module,exports){
+},{"./handle-buffers":6,"./utils":9,"elnawejs":12}],9:[function(require,module,exports){
 // TODO: Add docs
 const Component = require("./Component");
 const Text = require("./Text");
@@ -366,9 +367,7 @@ function button (state) {
     return Compose.component("button", {
         className: "my-button-class",
         id: "test",
-        onclick: () => {
-            log();
-        }
+        onclick: log,
     }, ["My Button Component", count]);
 }
 
@@ -397,4 +396,37 @@ options: Object
    });
 */
 
-},{"../core":7,"./Header":10}]},{},[11]);
+},{"../core":7,"./Header":10}],12:[function(require,module,exports){
+var assign = require("./src/assign");
+
+module.exports = {
+    assign: assign
+};
+
+},{"./src/assign":13}],13:[function(require,module,exports){
+/**
+ * @function assign
+ * @description Creates a new object changing the values of the `obj` with the ones in `source`.
+ * @param {Object} obj - The original object.
+ * @param {Object} source - An object that will overwrite (or add) values from the original object.
+ * @returns {Object} a new object with new assigned values.
+ */
+function assign(obj, source) {
+    // TODO: Use a copy of the original obj.
+    let newObj = obj;
+    let baseAssign = Object.assign;
+
+    if (!baseAssign) {
+        baseAssign = function manualAssign(obj, source) {
+            for (let key in source) {
+                obj[key] = source[key];
+            }
+        }
+    }
+
+    return baseAssign(newObj, source);
+}
+
+module.exports = assign;
+
+},{}]},{},[11]);

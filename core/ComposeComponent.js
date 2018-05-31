@@ -73,9 +73,9 @@ function parseProperties(properties) {
         case "function":
             result[propName.toLowerCase()] = propValue;
         case "object":
-            if (propValue instanceof Object && !(propValue instanceof Array)) {
+            if (propValue instanceof Object && !Array.isArray(propValue)) {
                 result[propName] = propValue;
-            } else if (propValue instanceof Array) {
+            } else if (Array.isArray(propValue)) {
                 result[propName] = propValue.join(" ");
             }
             break;
