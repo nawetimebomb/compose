@@ -5,6 +5,7 @@
 
 const Compose = require("../core");
 const Header = require("./Header");
+const http = require("../http");
 
 // A semi functional state, just for testing
 let numberOfButtons = 0;
@@ -16,8 +17,24 @@ function withIndex(component) {
     return component(numberOfButtons);
 }
 
-function log() {
-    console.log("My button is clicked");
+function get_json_data() {
+    http.get("https://jsonplaceholder.typicode.com/posts")
+        .then(function onSuccess(response) {
+            console.log(response);
+        })
+        .catch(function onError(error) {
+            console.error(error);
+        });
+}
+
+function get_text_data() {
+    http.get("https://elnawe.com")
+        .then(function onSuccess(response) {
+            console.log(response);
+        })
+        .catch(function onError(error) {
+            console.error(error);
+        });
 }
 
 // A custom button component
@@ -27,7 +44,7 @@ function button (state) {
     return Compose.component("button", {
         className: "my-button-class",
         id: "test",
-        onclick: log,
+        onclick: get_json_data,
     }, ["My Button Component", count]);
 }
 
@@ -39,9 +56,11 @@ function ComposeDemo() {
         Header(),
         "This is a Compose Demo: ",
         button(),
-        Compose.component("button", "I Love Compose")
+        Compose.component("button", { onClick: get_text_data }, "I Love Compose")
     ]);
 }
+
+
 
 const MyProgram = Compose.application(ComposeDemo, document.getElementById("root"));
 

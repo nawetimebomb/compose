@@ -62,7 +62,7 @@ module.exports = function ComposeApplication(rootComponent, ownerDOMElement, opt
     return api;
 };
 
-},{"./render":8,"./utils":9}],3:[function(require,module,exports){
+},{"./render":10,"./utils":11}],3:[function(require,module,exports){
 const errors = require("./errors");
 const Component = require("./Component");
 const Text = require("./Text");
@@ -154,7 +154,7 @@ function parseProperties(properties) {
 
 module.exports = ComposeComponent;
 
-},{"./Component":1,"./Text":4,"./errors":5,"./utils":9}],4:[function(require,module,exports){
+},{"./Component":1,"./Text":4,"./errors":5,"./utils":11}],4:[function(require,module,exports){
 function Text(text) {
     this.text = String(text);
 }
@@ -216,7 +216,12 @@ function renderBuffer(buffer, previous) {
 
 module.exports = handleBuffers;
 
-},{"./utils":9}],7:[function(require,module,exports){
+},{"./utils":11}],7:[function(require,module,exports){
+/**
+ * The Core module.
+ * @module @compose/core
+ * @see module:@compose/core
+ */
 const ComposeApplication = require("./ComposeApplication");
 const ComposeComponent = require("./ComposeComponent");
 
@@ -226,6 +231,39 @@ module.exports = {
 };
 
 },{"./ComposeApplication":2,"./ComposeComponent":3}],8:[function(require,module,exports){
+var assign = require("./src/assign");
+
+module.exports = {
+    assign: assign
+};
+
+},{"./src/assign":9}],9:[function(require,module,exports){
+/**
+ * @function assign
+ * @description Creates a new object changing the values of the `obj` with the ones in `source`.
+ * @param {Object} obj - The original object.
+ * @param {Object} source - An object that will overwrite (or add) values from the original object.
+ * @returns {Object} a new object with new assigned values.
+ */
+function assign(obj, source) {
+    // TODO: Use a copy of the original obj.
+    let newObj = obj;
+    let baseAssign = Object.assign;
+
+    if (!baseAssign) {
+        baseAssign = function manualAssign(obj, source) {
+            for (let key in source) {
+                obj[key] = source[key];
+            }
+        }
+    }
+
+    return baseAssign(newObj, source);
+}
+
+module.exports = assign;
+
+},{}],10:[function(require,module,exports){
 // TODO: Add docs
 // TODO This will be part of the .application method.
 // element should be a Component or Text.
@@ -284,7 +322,7 @@ function render(element, context, errorHandler) {
 
 module.exports = render;
 
-},{"./handle-buffers":6,"./utils":9,"elnawejs":12}],9:[function(require,module,exports){
+},{"./handle-buffers":6,"./utils":11,"elnawejs":8}],11:[function(require,module,exports){
 // TODO: Add docs
 const Component = require("./Component");
 const Text = require("./Text");
@@ -317,7 +355,118 @@ module.exports = {
     isText: isText
 };
 
-},{"./Component":1,"./Text":4}],10:[function(require,module,exports){
+},{"./Component":1,"./Text":4}],12:[function(require,module,exports){
+/**
+ * @function get
+ * @description Get function
+ * @param {String} url - The URL/URI.
+ * @returns {Promise} A JavaScript Promise.
+ */
+function get(url) {
+    return new Promise(function getPromise(resolve, reject) {
+        const xhr = new XMLHttpRequest();
+
+        xhr.open("GET", url, true);
+
+        xhr.onload = function onLoad() {
+            if (this.status >= 200 && this.status < 300) {
+                let response = parseResponse(this.response);
+
+                resolve(response);
+            } else {
+                reject({
+                    status: this.status,
+                    statusText: this.statusText
+                });
+            }
+        };
+
+        xhr.onerror = function onError() {
+            reject({
+                status: this.status,
+                statusText: this.statusText
+            });
+        };
+
+        xhr.send(null);
+    });
+}
+
+function parseResponse(response) {
+    let newResponse;
+
+    try {
+        newResponse = JSON.parse(response);
+    } catch (error) {
+        newResponse = response;
+    }
+
+    return newResponse;
+}
+
+module.exports = get;
+
+},{}],13:[function(require,module,exports){
+/**
+ * The Http module
+ * @module @compose/http
+ * @see module:@compose/http
+ */
+const get = require("./get");
+const post = require("./post");
+
+module.exports = {
+    get: get,
+    post: post
+};
+
+},{"./get":12,"./post":14}],14:[function(require,module,exports){
+/**
+ * Post request module.
+ * @module @compose/http/post
+ * @see module:@compose/http/post
+ */
+
+/**
+ * @function post
+ * @description Post function
+ * @param {String} url - The URL/URI.
+ * @param {Object} body - The call body.
+ * @param {Object} headers - Extra headers.
+ * @returns {Promise} A JavaScript Promise.
+ */
+function post(url, body, headers) {
+    return new Promise(function postPromise(resolve, reject) {
+        const xhr = new XMLHttpRequest();
+
+        xhr.open("POST", url, true);
+
+        // Parsing headers
+        if (headers && headers instanceof Object) {
+            headers.each(function addHeaders(value, key) {
+                xhr.setRequestHeader(key, value);
+            });
+        }
+
+        xhr.send(JSON.stringify(body));
+
+        // Do processing after request finishes.
+        xhr.onreadystatechange = function onReady() {
+            if (this.readyState == XMLHttpRequest.DONE && this.status == 200) {
+                resolve(this.response);
+            } else {
+                reject( {
+                    status: this.status,
+                    statusText: this.statusText
+                });
+            }
+        }
+    });
+}
+
+module.exports = post;
+
+},{}],15:[function(require,module,exports){
 const Compose = require("../core");
 
 function Header() {
@@ -337,7 +486,7 @@ function Title() {
 
 module.exports = Header;
 
-},{"../core":7}],11:[function(require,module,exports){
+},{"../core":7}],16:[function(require,module,exports){
 // TODO: Handle a tree for the Virtual DOM
 // TODO: Add logic to push Virtual DOM tree into the real DOM
 // TODO: Add logic to patch the DOM with the Virtual DOM
@@ -345,6 +494,7 @@ module.exports = Header;
 
 const Compose = require("../core");
 const Header = require("./Header");
+const http = require("../http");
 
 // A semi functional state, just for testing
 let numberOfButtons = 0;
@@ -356,8 +506,24 @@ function withIndex(component) {
     return component(numberOfButtons);
 }
 
-function log() {
-    console.log("My button is clicked");
+function get_json_data() {
+    http.get("https://jsonplaceholder.typicode.com/posts")
+        .then(function onSuccess(response) {
+            console.log(response);
+        })
+        .catch(function onError(error) {
+            console.error(error);
+        });
+}
+
+function get_text_data() {
+    http.get("https://elnawe.com")
+        .then(function onSuccess(response) {
+            console.log(response);
+        })
+        .catch(function onError(error) {
+            console.error(error);
+        });
 }
 
 // A custom button component
@@ -367,7 +533,7 @@ function button (state) {
     return Compose.component("button", {
         className: "my-button-class",
         id: "test",
-        onclick: log,
+        onclick: get_json_data,
     }, ["My Button Component", count]);
 }
 
@@ -379,9 +545,11 @@ function ComposeDemo() {
         Header(),
         "This is a Compose Demo: ",
         button(),
-        Compose.component("button", "I Love Compose")
+        Compose.component("button", { onClick: get_text_data }, "I Love Compose")
     ]);
 }
+
+
 
 const MyProgram = Compose.application(ComposeDemo, document.getElementById("root"));
 
@@ -396,37 +564,4 @@ options: Object
    });
 */
 
-},{"../core":7,"./Header":10}],12:[function(require,module,exports){
-var assign = require("./src/assign");
-
-module.exports = {
-    assign: assign
-};
-
-},{"./src/assign":13}],13:[function(require,module,exports){
-/**
- * @function assign
- * @description Creates a new object changing the values of the `obj` with the ones in `source`.
- * @param {Object} obj - The original object.
- * @param {Object} source - An object that will overwrite (or add) values from the original object.
- * @returns {Object} a new object with new assigned values.
- */
-function assign(obj, source) {
-    // TODO: Use a copy of the original obj.
-    let newObj = obj;
-    let baseAssign = Object.assign;
-
-    if (!baseAssign) {
-        baseAssign = function manualAssign(obj, source) {
-            for (let key in source) {
-                obj[key] = source[key];
-            }
-        }
-    }
-
-    return baseAssign(newObj, source);
-}
-
-module.exports = assign;
-
-},{}]},{},[11]);
+},{"../core":7,"../http":13,"./Header":15}]},{},[16]);
