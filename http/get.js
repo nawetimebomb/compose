@@ -1,6 +1,6 @@
 /**
  * @function get
- * @description Get function
+ * @description Get function.
  * @param {String} url - The URL/URI.
  * @returns {Promise} A JavaScript Promise.
  */

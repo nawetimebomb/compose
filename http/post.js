@@ -6,7 +6,7 @@
 
 /**
  * @function post
- * @description Post function
+ * @description Post function.
  * @param {String} url - The URL/URI.
  * @param {Object} body - The call body.
  * @param {Object} headers - Extra headers.
