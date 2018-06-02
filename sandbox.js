@@ -448,20 +448,33 @@ function post(url, body, headers) {
             });
         }
 
-        xhr.send(JSON.stringify(body));
+        xhr.onload = function onLoad() {
+            if (this.status >= 200 && this.status < 300) {
+                let response = parseResponse(this.response);
 
-        // Do processing after request finishes.
-        xhr.onreadystatechange = function onReady() {
-            if (this.readyState == XMLHttpRequest.DONE && this.status == 200) {
-                resolve(this.response);
+                resolve(response);
             } else {
-                reject( {
+                reject({
                     status: this.status,
                     statusText: this.statusText
                 });
             }
-        }
+        };
+
+        xhr.send(JSON.stringify(body));
     });
+}
+
+function parseResponse(response) {
+    let newResponse;
+
+    try {
+        newResponse = JSON.parse(response);
+    } catch (error) {
+        newResponse = response;
+    }
+
+    return newResponse;
 }
 
 module.exports = post;
@@ -526,6 +539,18 @@ function get_text_data() {
         });
 }
 
+function post_data() {
+    let testBody = { myTest: true };
+
+    http.post("https://jsonplaceholder.typicode.com/posts")
+        .then(function onSuccess(response) {
+            console.log(response);
+        })
+        .catch(function onError(error) {
+            console.error(error);
+        });
+}
+
 // A custom button component
 function button (state) {
     count = state || "";
@@ -545,7 +570,8 @@ function ComposeDemo() {
         Header(),
         "This is a Compose Demo: ",
         button(),
-        Compose.component("button", { onClick: get_text_data }, "I Love Compose")
+        Compose.component("button", { onClick: get_text_data }, "I Love Compose"),
+        Compose.component("button", { onClick: post_data }, "Posting Data")
     ]);
 }
 

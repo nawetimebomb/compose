@@ -37,6 +37,18 @@ function get_text_data() {
         });
 }
 
+function post_data() {
+    let testBody = { myTest: true };
+
+    http.post("https://jsonplaceholder.typicode.com/posts")
+        .then(function onSuccess(response) {
+            console.log(response);
+        })
+        .catch(function onError(error) {
+            console.error(error);
+        });
+}
+
 // A custom button component
 function button (state) {
     count = state || "";
@@ -56,7 +68,8 @@ function ComposeDemo() {
         Header(),
         "This is a Compose Demo: ",
         button(),
-        Compose.component("button", { onClick: get_text_data }, "I Love Compose")
+        Compose.component("button", { onClick: get_text_data }, "I Love Compose"),
+        Compose.component("button", { onClick: post_data }, "Posting Data")
     ]);
 }
 
