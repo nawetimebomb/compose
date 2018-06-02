@@ -1,31 +1,27 @@
-// TODO: Add docs
-// TODO This will be part of the .application method.
-// element should be a Component or Text.
 const elnawejs = require("elnawejs");
 const utils = require("./utils");
-const handleBuffers = require("./handle-buffers");
 
-function render(element, context, errorHandler) {
-    let doc = context || document;
+function render(element, options) {
+    let doc = options ? options.document || document : document;
+    let warning = options ? options.warning : null;
+    let renderedElement = element;
 
     if (typeof element === "function") {
-        element = element();
+        renderedElement = element();
     }
 
-    //element = handleBuffers(element).a;
-
-    if (utils.isText(element)) {
-        return doc.createTextNode(element.text);
-    } else if (!utils.isComponent(element)) {
-        if (errorHandler) {
-            errorHandler("Element not valid: ", element);
+    if (utils.isText(renderedElement)) {
+        return doc.createTextNode(renderedElement.text);
+    } else if (!utils.isComponent(renderedElement)) {
+        if (warning) {
+            warning("Element not valid: ", renderedElement);
         }
 
         return null;
     }
 
-    let node = doc.createElement(element.tagName);
-    let props = element.properties;
+    let node = doc.createElement(renderedElement.tagName);
+    let props = renderedElement.properties;
 
     // Add properties to the node.
     for (let propName in props) {
@@ -41,10 +37,10 @@ function render(element, context, errorHandler) {
         }
     }
 
-    let children = element.children;
+    let children = renderedElement.children;
 
     for (let index = 0; index < children.length; index++) {
-        let childNode = render(children[index], context, errorHandler);
+        let childNode = render(children[index], options);
 
         if (childNode) {
             node.appendChild(childNode);

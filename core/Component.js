@@ -9,8 +9,8 @@ function Component(tagName, properties, children, key) {
     this.children = children || emptyChildren;
     this.key = key != null ? String(key) : undefined;
 
-    let count = 0;
-    let descendents = 0;
+    let count = this.children.length;
+    let descendants = 0;
     let hooks;
 
     for (let propName in properties) {
@@ -19,7 +19,15 @@ function Component(tagName, properties, children, key) {
         }
     }
 
-    this.count = count;
+    for (let index = 0; index < count; index++) {
+        let child = children[index];
+
+        if (child && child.type === type) {
+            descendants += child.count || 0;
+        }
+    }
+
+    this.count = count + descendants;
     this.hooks = hooks;
 }
 

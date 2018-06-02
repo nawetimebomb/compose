@@ -1,5 +1,5 @@
-const errors = require("./errors");
 const Component = require("./Component");
+const errors = require("./errors");
 const Text = require("./Text");
 const utils = require("./utils");
 
