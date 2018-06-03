@@ -20,7 +20,7 @@ function initApplication(appComponent, ownerDOMElement) {
         return node;
     })(component, ownerDOMElement, elnawejs.clone(state));
 
-    // clean-up unnecessary memory.
+    // clean-up unnecessary memory allocation.
     appComponent = undefined;
     ownerDOMElement = undefined;
 
