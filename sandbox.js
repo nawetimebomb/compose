@@ -714,6 +714,8 @@ function ComposeComponent(tagName, properties, children) {
 
 function parseChild(child, tag, properties) {
     switch(typeof child) {
+    case "undefined":
+        return;
     case "string":
         return new Text(child);
     case "number":
@@ -722,8 +724,6 @@ function parseChild(child, tag, properties) {
         if (utils.isChild(child())) return child();
     case "object":
         if (utils.isChild(child)) return child;
-    case "undefined":
-        return;
     default:
         throw errors.UnexpectedElement({
             element: child,
@@ -870,13 +870,17 @@ function render(element, options) {
         renderedElement = element();
     }
 
-    if (utils.isText(renderedElement)) {
-        return doc.createTextNode(renderedElement.text);
-    } else if (!utils.isComponent(renderedElement)) {
-        if (warning) {
-            warning("Element not valid: ", renderedElement);
-        }
+    if (renderedElement) {
+        if (utils.isText(renderedElement)) {
+            return doc.createTextNode(renderedElement.text);
+        } else if (!utils.isComponent(renderedElement)) {
+            if (warning) {
+                warning("Element not valid: ", renderedElement);
+            }
 
+            return null;
+        }
+    } else {
         return null;
     }
 
@@ -1198,6 +1202,7 @@ function ComposeDemo(appState, posts) {
         Compose.component("button", { onClick: update_dom }, "Change State"),
         contentComponent,
         anotherChild,
+        undefined,
         PostListComponent(posts)
     ]);
 }

@@ -106,6 +106,7 @@ function ComposeDemo(appState, posts) {
         Compose.component("button", { onClick: update_dom }, "Change State"),
         contentComponent,
         anotherChild,
+        undefined,
         PostListComponent(posts)
     ]);
 }

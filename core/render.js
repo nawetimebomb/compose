@@ -10,9 +10,17 @@ function render(element, options) {
         renderedElement = element();
     }
 
-    if (utils.isText(renderedElement)) {
-        return doc.createTextNode(renderedElement.text);
-    } else if (!utils.isComponent(renderedElement)) {
+    if (renderedElement) {
+        if (utils.isText(renderedElement)) {
+            return doc.createTextNode(renderedElement.text);
+        } else if (!utils.isComponent(renderedElement)) {
+            if (warning) {
+                warning("Element not valid: ", renderedElement);
+            }
+
+            return null;
+        }
+    } else {
         if (warning) {
             warning("Element not valid: ", renderedElement);
         }
