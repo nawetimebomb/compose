@@ -17,14 +17,10 @@ function withIndex(component) {
     return component(numberOfButtons);
 }
 
-let postsData = [];
-
 function get_json_data() {
     http.get("https://jsonplaceholder.typicode.com/comments?postId=1")
         .then(function onSuccess(response) {
-            postsData = response;
-
-            MyProgram.update(ComposeDemo(appState, postsData));
+            MyProgram.setState({ posts: response });
         })
         .catch(function onError(error) {
             console.error(error);
@@ -43,17 +39,16 @@ function post_data() {
         });
 }
 
-function update_dom() {
-    // Just a POC on changing state. This is not final nor functional!
-    appState.showContent = !appState.showContent;
+let showContent = false;
 
-    MyProgram.update(ComposeDemo(appState, postsData));
+function update_dom() {
+    showContent = !showContent;
+
+    MyProgram.setState({ showContent: showContent });
 }
 
 // A custom button component
 function button (state) {
-    count = state || "";
-
     return Compose.component("button", {
         className: "my-button-class",
         id: "test",
@@ -78,19 +73,23 @@ function PostComponent(post) {
 }
 
 function PostListComponent(posts) {
-    let children = posts.map(function (post) {
-        return PostComponent(post);
-    });
+    let children = [];
+
+    if (posts && posts.length) {
+        children = posts.map(function (post) {
+            return PostComponent(post);
+        });
+    }
 
     return Compose.component("div", children);
 }
 
 // A Compose framework demo Component
-function ComposeDemo(appState, posts) {
-    let contentComponent = "Current content state is: " + appState.showContent;
+function ComposeDemo(state) {
+    let contentComponent = "Current content state is: " + state.showContent;
     let anotherChild = "";
 
-    if (appState.showContent) {
+    if (state.showContent) {
         anotherChild = Compose.component(
             "p",
             "This is another component that only is shown when the state changes"
@@ -107,15 +106,11 @@ function ComposeDemo(appState, posts) {
         contentComponent,
         anotherChild,
         undefined,
-        PostListComponent(posts)
+        PostListComponent(state.posts)
     ]);
 }
 
-let appState = {
-    showContent: false
-};
-
-const MyProgram = Compose.application(ComposeDemo(appState, postsData), document.getElementById("root"));
+const MyProgram = Compose.application(ComposeDemo, document.getElementById("root"));
 
 /*
 Compose.application = function (rootComponent, DOMNode, options);

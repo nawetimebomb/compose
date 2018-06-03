@@ -37,9 +37,8 @@ Component.prototype.type = type;
 module.exports = Component;
 
 },{}],2:[function(require,module,exports){
-const render = require("./render");
+const initApplication = require("./init-application");
 const utils = require("./utils");
-const UpdateOperation = require("./UpdateOperation");
 
 /**
  * ComposeApplication
@@ -48,12 +47,8 @@ const UpdateOperation = require("./UpdateOperation");
  * @param {Object} options - The options object.
  * @returns {Object} api - Compose api.
  */
-function ComposeApplication(appComponent, ownerDOMElement, options) {
-    const api = {};
+function ComposeApplication(appComponent, ownerDOMElement) {
     let owner = ownerDOMElement;
-    let rootNode;
-
-    options = options || {};
 
     if (typeof ownerDOMElement === "string") {
         owner = document.querySelector(ownerDOMElement);
@@ -63,32 +58,140 @@ function ComposeApplication(appComponent, ownerDOMElement, options) {
         throw Error("Not an owner node");
     }
 
-    // Safety check the component
-    if (appComponent && utils.isChild(appComponent)) {
-        rootNode = render(appComponent);
-
-        owner.appendChild(rootNode);
-    } else {
+    if (!appComponent || !utils.isChild(appComponent)) {
         throw Error("Not a component");
     }
 
-    return {
-        update: function (newComponent) {
-            let changes = calculateDifferences(rootNode, newComponent);
-            rootNode = update(rootNode, changes, options);
-        }
-    };
+    return initApplication(appComponent, owner);
 };
 
 module.exports = ComposeApplication;
 
-/**************************************\
-|                                      |
-|** TODO   MOVE THIS INTO A NEW FILE **|
-|                                      |
-\**************************************/
+},{"./init-application":9,"./utils":15}],3:[function(require,module,exports){
+const Component = require("./Component");
+const errors = require("./errors");
+const Text = require("./Text");
+const utils = require("./utils");
 
-function calculateDifferences(a, b) {
+function ComposeComponent(tagName, properties, children) {
+    let childNodes = [];
+    let tag, props, key, namespace;
+
+    // If second parameter is children instead of prop.
+    if (!children && utils.isChildren(properties)) {
+        children = properties;
+        props = {};
+    }
+
+    props = parseProperties(props || properties || {});
+    tag = tagName;
+
+    // Support and save key.
+    if (props.hasOwnProperty("key")) {
+        key = props.key;
+        props.key = undefined;
+    }
+
+    if (children !== undefined && children !== null) {
+        if (Array.isArray(children)) {
+            for (let index = 0; index < children.length; index++) {
+                childNodes.push(parseChild(children[index], tag, props));
+            }
+        } else {
+            childNodes.push(parseChild(children, tag, props));
+        }
+    }
+
+    return new Component(tag, props, childNodes, key);
+}
+
+function parseChild(child, tag, properties) {
+    switch(typeof child) {
+    case "undefined":
+        return;
+    case "string":
+        return new Text(child);
+    case "number":
+        return new Text(child);
+    case "function":
+        if (utils.isChild(child())) return child();
+    case "object":
+        if (utils.isChild(child)) return child;
+    default:
+        throw errors.UnexpectedElement({
+            element: child,
+            parent: {
+                tag: tag,
+                properties: properties
+            }
+        });
+    }
+}
+
+/**
+ * @function parseProperties
+ * @description Parses properties and understand which kind of property is and what should do in the Component.
+ * @return {Object} a properties object to assign to the Component.
+ */
+function parseProperties(properties) {
+    let result = {};
+
+    for (let propName in properties) {
+        const propValue = properties[propName];
+
+        switch (typeof propValue) {
+        case "function":
+            result[propName.toLowerCase()] = propValue;
+        case "object":
+            if (propValue instanceof Object && !Array.isArray(propValue)) {
+                result[propName] = propValue;
+            } else if (Array.isArray(propValue)) {
+                result[propName] = propValue.join(" ");
+            }
+            break;
+        default:
+            result[propName] = propValue;
+        }
+    }
+
+    return result;
+}
+
+module.exports = ComposeComponent;
+
+},{"./Component":1,"./Text":4,"./errors":7,"./utils":15}],4:[function(require,module,exports){
+function Text(text) {
+    this.text = String(text);
+}
+
+Text.prototype.type = "Text";
+
+module.exports = Text;
+
+},{}],5:[function(require,module,exports){
+function UpdateOperation(type, node, changes) {
+    this.type = Number(type);
+    this.component = node;
+    this.changes = changes;
+}
+
+UpdateOperation.NONE = 0;
+UpdateOperation.TEXT = 1;
+UpdateOperation.COMPONENT = 2;
+UpdateOperation.PROPS = 3;
+UpdateOperation.ORDER = 4;
+UpdateOperation.INSERT = 5;
+UpdateOperation.REMOVE = 6;
+
+UpdateOperation.prototype.type = "UpdateOperation";
+
+module.exports = UpdateOperation;
+
+},{}],6:[function(require,module,exports){
+const UpdateOperation = require("./UpdateOperation");
+const utils = require("./utils");
+
+function diff(a, b) {
     let changes = { a: a };
 
     getDifferencesByMappingTree(a, b, changes, 0);
@@ -420,18 +523,227 @@ function getPrototype(value) {
     }
 }
 
+module.exports = diff;
+
+},{"./UpdateOperation":5,"./utils":15}],7:[function(require,module,exports){
+function UnexpectedElement(data) {
+    let err = new Error();
+
+    // Fix error message.
+    err.type = "compose.unexpected.element";
+    err.message = "Trying to render unexpected element " + JSON.stringify(data.element) + "."
+    err.node = data.element;
+
+    return err;
+}
+
+module.exports = {
+    UnexpectedElement: UnexpectedElement
+};
+
+},{}],8:[function(require,module,exports){
+/**
+ * The Core module.
+ * @module @compose/core
+ * @see module:@compose/core
+ */
+const ComposeApplication = require("./ComposeApplication");
+const ComposeComponent = require("./ComposeComponent");
+
+module.exports = {
+    application: ComposeApplication,
+    component: ComposeComponent
+};
+
+},{"./ComposeApplication":2,"./ComposeComponent":3}],9:[function(require,module,exports){
+const diff = require("./diff");
+const elnawejs = require("elnawejs");
+const render = require("./render");
+const update = require("./update");
+const utils = require("./utils");
+
+function initApplication(appComponent, ownerDOMElement) {
+    // private variables
+    const component = appComponent;
+    let rootNode;
+    let state = {};
+
+    // render initial application
+    rootNode = (function renderInitialApplication (component, owner, initialState) {
+        const rootComponent = component(initialState);
+        const node = render(rootComponent);
+
+        owner.appendChild(node);
+
+        return node;
+    })(component, ownerDOMElement, elnawejs.clone(state));
+
+    // clean-up unnecessary memory.
+    appComponent = undefined;
+    ownerDOMElement = undefined;
+
+    return {
+        forceUpdate: function forceUpdate() {
+            let newComponent = component(state);
+            let changes = diff(rootNode, newComponent);
+
+            rootNode = update(rootNode, changes);
+        },
+        getState: function getState() {
+            return elnawejs.clone(state);
+        },
+        setState: function setState(stateChange) {
+            let newState = elnawejs.assign(state, stateChange);
+
+            if (this.shouldUpdate(newState)) {
+                state = newState;
+                this.forceUpdate();
+            }
+        },
+        shouldUpdate: function shouldUpdate(newState) {
+            // TODO: this shouldn't force the update.
+            // It should check if newState is equal to the current existing app state.
+            return true;
+        }
+    };
+}
+
+module.exports = initApplication;
+
+},{"./diff":6,"./render":13,"./update":14,"./utils":15,"elnawejs":10}],10:[function(require,module,exports){
+module.exports = {
+    assign: require("./src/assign"),
+    clone: require("./src/clone")
+};
+
+},{"./src/assign":11,"./src/clone":12}],11:[function(require,module,exports){
+const clone = require("./clone");
+
+/**
+ * @function assign
+ * @description Creates a new object changing the values of the `obj` with the ones in `source`.
+ * @param {Object} obj - The original object.
+ * @param {Object} source - An object that will overwrite (or add) values from the original object.
+ * @returns {Object} a new object with new assigned values.
+ */
+function assign(obj, source) {
+    let newObj = clone(obj);
+    let baseAssign = Object.assign;
+
+    if (!baseAssign) {
+        baseAssign = function manualAssign(obj, source) {
+            for (let key in source) {
+                obj[key] = source[key];
+            }
+        }
+    }
+
+    return baseAssign(newObj, source);
+}
+
+module.exports = assign;
+
+},{"./clone":12}],12:[function(require,module,exports){
+/**
+ * @function clone
+ * @description Creates a shallow or deep clone of an object.
+ * @param {Object} obj - The original object to clone.
+ * @param {Boolean} deepClone - A flag to toggle the deepClone.
+ * @returns {Object} a new object cloned from the previous one.
+ */
+function clone(obj, deepClone) {
+    return JSON.parse(JSON.stringify(obj));
+}
+
+module.exports = clone;
+
+},{}],13:[function(require,module,exports){
+const elnawejs = require("elnawejs");
+const utils = require("./utils");
+
+function render(element, options) {
+    let doc = options ? options.document || document : document;
+    let warning = options ? options.warning : null;
+    let renderedElement = element;
+
+    if (typeof element === "function") {
+        renderedElement = element();
+    }
+
+    if (renderedElement) {
+        if (utils.isText(renderedElement)) {
+            return doc.createTextNode(renderedElement.text);
+        } else if (!utils.isComponent(renderedElement)) {
+            if (warning) {
+                warning("Element not valid: ", renderedElement);
+            }
+
+            return null;
+        }
+    } else {
+        if (warning) {
+            warning("Element not valid: ", renderedElement);
+        }
+
+        return null;
+    }
+
+    let node = doc.createElement(renderedElement.tagName);
+    let props = renderedElement.properties;
+
+    // Add properties to the node.
+    for (let propName in props) {
+        const propValue = props[propName];
+
+        if (propValue === undefined) {
+            // TODO: check this! Should be safer
+            node[propName] = undefined;
+        } else if (typeof propValue === "object") {
+            if (propName === "style") {
+                for (let key in propValue) {
+                    node.style[key] = propValue[key];
+                }
+            } else {
+                elnawe.assign(node[propName], propValue);
+            }
+        } else {
+            node[propName] = props[propName];
+        }
+    }
+
+    let children = renderedElement.children;
+
+    for (let index = 0; index < children.length; index++) {
+        let childNode = render(children[index], options);
+
+        if (childNode) {
+            node.appendChild(childNode);
+        }
+    }
+
+    return node;
+}
+
+module.exports = render;
+
+},{"./utils":15,"elnawejs":10}],14:[function(require,module,exports){
+const render = require("./render");
+const UpdateOperation = require("./UpdateOperation");
+
+const noChild = {};
+
 /**
  * Selects the way the app is going to update. If the user provides an `update` function, use that. If not, use the default `recursiveUpdate`.
  */
-function update(rootNode, changes, options) {
-    let newOptions = options || {};
+function update(rootNode, changes) {
+    let options = {};
 
-    newOptions.update = (newOptions.update && newOptions.update !== update)
-        ? newOptions.update
+    options.update = (options.update && options.update !== update)
+        ? options.update
         : recursiveUpdate;
-    newOptions.render = newOptions.render || render;
+    options.render = options.render || render;
 
-    return newOptions.update(rootNode, changes, newOptions);
+    return recursiveUpdate(rootNode, changes, options);
 }
 
 function recursiveUpdate(rootNode, changes, options) {
@@ -597,8 +909,6 @@ function reorderChildren(domNode, moves) {
     }
 }
 
-const noChild = {};
-
 function virtualDOM(rootNode, tree, record, nodes) {
     if (!record || record.length === 0) {
         return {};
@@ -674,226 +984,9 @@ function ascending(a, b) {
     return a > b ? 1 : -1;
 }
 
-},{"./UpdateOperation":5,"./render":8,"./utils":9}],3:[function(require,module,exports){
-const Component = require("./Component");
-const errors = require("./errors");
-const Text = require("./Text");
-const utils = require("./utils");
+module.exports = update;
 
-function ComposeComponent(tagName, properties, children) {
-    let childNodes = [];
-    let tag, props, key, namespace;
-
-    // If second parameter is children instead of prop.
-    if (!children && utils.isChildren(properties)) {
-        children = properties;
-        props = {};
-    }
-
-    props = parseProperties(props || properties || {});
-    tag = tagName;
-
-    // Support and save key.
-    if (props.hasOwnProperty("key")) {
-        key = props.key;
-        props.key = undefined;
-    }
-
-    if (children !== undefined && children !== null) {
-        if (Array.isArray(children)) {
-            for (let index = 0; index < children.length; index++) {
-                childNodes.push(parseChild(children[index], tag, props));
-            }
-        } else {
-            childNodes.push(parseChild(children, tag, props));
-        }
-    }
-
-    return new Component(tag, props, childNodes, key);
-}
-
-function parseChild(child, tag, properties) {
-    switch(typeof child) {
-    case "undefined":
-        return;
-    case "string":
-        return new Text(child);
-    case "number":
-        return new Text(child);
-    case "function":
-        if (utils.isChild(child())) return child();
-    case "object":
-        if (utils.isChild(child)) return child;
-    default:
-        throw errors.UnexpectedElement({
-            element: child,
-            parent: {
-                tag: tag,
-                properties: properties
-            }
-        });
-    }
-}
-
-/**
- * @function parseProperties
- * @description Parses properties and understand which kind of property is and what should do in the Component.
- * @return {Object} a properties object to assign to the Component.
- */
-function parseProperties(properties) {
-    let result = {};
-
-    for (let propName in properties) {
-        const propValue = properties[propName];
-
-        switch (typeof propValue) {
-        case "function":
-            result[propName.toLowerCase()] = propValue;
-        case "object":
-            if (propValue instanceof Object && !Array.isArray(propValue)) {
-                result[propName] = propValue;
-            } else if (Array.isArray(propValue)) {
-                result[propName] = propValue.join(" ");
-            }
-            break;
-        default:
-            result[propName] = propValue;
-        }
-    }
-
-    return result;
-}
-
-module.exports = ComposeComponent;
-
-},{"./Component":1,"./Text":4,"./errors":6,"./utils":9}],4:[function(require,module,exports){
-function Text(text) {
-    this.text = String(text);
-}
-
-Text.prototype.type = "Text";
-
-module.exports = Text;
-
-},{}],5:[function(require,module,exports){
-function UpdateOperation(type, node, changes) {
-    this.type = Number(type);
-    this.component = node;
-    this.changes = changes;
-}
-
-UpdateOperation.NONE = 0;
-UpdateOperation.TEXT = 1;
-UpdateOperation.COMPONENT = 2;
-UpdateOperation.PROPS = 3;
-UpdateOperation.ORDER = 4;
-UpdateOperation.INSERT = 5;
-UpdateOperation.REMOVE = 6;
-
-UpdateOperation.prototype.type = "UpdateOperation";
-
-module.exports = UpdateOperation;
-
-},{}],6:[function(require,module,exports){
-function UnexpectedElement(data) {
-    let err = new Error();
-
-    // Fix error message.
-    err.type = "compose.unexpected.element";
-    err.message = "Trying to render unexpected element " + JSON.stringify(data.element) + "."
-    err.node = data.element;
-
-    return err;
-}
-
-module.exports = {
-    UnexpectedElement: UnexpectedElement
-};
-
-},{}],7:[function(require,module,exports){
-/**
- * The Core module.
- * @module @compose/core
- * @see module:@compose/core
- */
-const ComposeApplication = require("./ComposeApplication");
-const ComposeComponent = require("./ComposeComponent");
-
-module.exports = {
-    application: ComposeApplication,
-    component: ComposeComponent
-};
-
-},{"./ComposeApplication":2,"./ComposeComponent":3}],8:[function(require,module,exports){
-const elnawejs = require("elnawejs");
-const utils = require("./utils");
-
-function render(element, options) {
-    let doc = options ? options.document || document : document;
-    let warning = options ? options.warning : null;
-    let renderedElement = element;
-
-    if (typeof element === "function") {
-        renderedElement = element();
-    }
-
-    if (renderedElement) {
-        if (utils.isText(renderedElement)) {
-            return doc.createTextNode(renderedElement.text);
-        } else if (!utils.isComponent(renderedElement)) {
-            if (warning) {
-                warning("Element not valid: ", renderedElement);
-            }
-
-            return null;
-        }
-    } else {
-        if (warning) {
-            warning("Element not valid: ", renderedElement);
-        }
-
-        return null;
-    }
-
-    let node = doc.createElement(renderedElement.tagName);
-    let props = renderedElement.properties;
-
-    // Add properties to the node.
-    for (let propName in props) {
-        const propValue = props[propName];
-
-        if (propValue === undefined) {
-            // TODO: check this! Should be safer
-            node[propName] = undefined;
-        } else if (typeof propValue === "object") {
-            if (propName === "style") {
-                for (let key in propValue) {
-                    node.style[key] = propValue[key];
-                }
-            } else {
-                elnawe.assign(node[propName], propValue);
-            }
-        } else {
-            node[propName] = props[propName];
-        }
-    }
-
-    let children = renderedElement.children;
-
-    for (let index = 0; index < children.length; index++) {
-        let childNode = render(children[index], options);
-
-        if (childNode) {
-            node.appendChild(childNode);
-        }
-    }
-
-    return node;
-}
-
-module.exports = render;
-
-},{"./utils":9,"elnawejs":15}],9:[function(require,module,exports){
+},{"./UpdateOperation":5,"./render":13}],15:[function(require,module,exports){
 // TODO: Add docs
 const Component = require("./Component");
 const Text = require("./Text");
@@ -903,7 +996,11 @@ function isBuffer(element) {
 }
 
 function isChild(element) {
-    return isComponent(element) || isText(element) || (typeof element === "function" && isChild(element()));
+    // TODO The {} in element({}) is a workaround for the initial state of the app.
+    // This is not clean anymore and will have to find a better solution to not force this check.
+    // Isn't that bad passing an "empty" state since it's actually the one used when the app runs first,
+    // but if I want to give a change to the user to start with a custom initial state I will need to fix this.
+    return isComponent(element) || isText(element) || (typeof element === "function" && isChild(element({})));
 }
 
 function isChildren(elements) {
@@ -926,7 +1023,7 @@ module.exports = {
     isText: isText
 };
 
-},{"./Component":1,"./Text":4}],10:[function(require,module,exports){
+},{"./Component":1,"./Text":4}],16:[function(require,module,exports){
 /**
  * @function get
  * @description Get function.
@@ -977,7 +1074,7 @@ function parseResponse(response) {
 
 module.exports = get;
 
-},{}],11:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 /**
  * The Http module
  * @module @compose/http
@@ -991,7 +1088,7 @@ module.exports = {
     post: post
 };
 
-},{"./get":10,"./post":12}],12:[function(require,module,exports){
+},{"./get":16,"./post":18}],18:[function(require,module,exports){
 /**
  * Post request module.
  * @module @compose/http/post
@@ -1050,7 +1147,7 @@ function parseResponse(response) {
 
 module.exports = post;
 
-},{}],13:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 const Compose = require("../core");
 
 function Header() {
@@ -1070,7 +1167,7 @@ function Title() {
 
 module.exports = Header;
 
-},{"../core":7}],14:[function(require,module,exports){
+},{"../core":8}],20:[function(require,module,exports){
 // TODO: Handle a tree for the Virtual DOM
 // TODO: Add logic to push Virtual DOM tree into the real DOM
 // TODO: Add logic to patch the DOM with the Virtual DOM
@@ -1090,14 +1187,10 @@ function withIndex(component) {
     return component(numberOfButtons);
 }
 
-let postsData = [];
-
 function get_json_data() {
     http.get("https://jsonplaceholder.typicode.com/comments?postId=1")
         .then(function onSuccess(response) {
-            postsData = response;
-
-            MyProgram.update(ComposeDemo(appState, postsData));
+            MyProgram.setState({ posts: response });
         })
         .catch(function onError(error) {
             console.error(error);
@@ -1116,17 +1209,16 @@ function post_data() {
         });
 }
 
-function update_dom() {
-    // Just a POC on changing state. This is not final nor functional!
-    appState.showContent = !appState.showContent;
+let showContent = false;
 
-    MyProgram.update(ComposeDemo(appState, postsData));
+function update_dom() {
+    showContent = !showContent;
+
+    MyProgram.setState({ showContent: showContent });
 }
 
 // A custom button component
 function button (state) {
-    count = state || "";
-
     return Compose.component("button", {
         className: "my-button-class",
         id: "test",
@@ -1151,19 +1243,23 @@ function PostComponent(post) {
 }
 
 function PostListComponent(posts) {
-    let children = posts.map(function (post) {
-        return PostComponent(post);
-    });
+    let children = [];
+
+    if (posts && posts.length) {
+        children = posts.map(function (post) {
+            return PostComponent(post);
+        });
+    }
 
     return Compose.component("div", children);
 }
 
 // A Compose framework demo Component
-function ComposeDemo(appState, posts) {
-    let contentComponent = "Current content state is: " + appState.showContent;
+function ComposeDemo(state) {
+    let contentComponent = "Current content state is: " + state.showContent;
     let anotherChild = "";
 
-    if (appState.showContent) {
+    if (state.showContent) {
         anotherChild = Compose.component(
             "p",
             "This is another component that only is shown when the state changes"
@@ -1180,15 +1276,11 @@ function ComposeDemo(appState, posts) {
         contentComponent,
         anotherChild,
         undefined,
-        PostListComponent(posts)
+        PostListComponent(state.posts)
     ]);
 }
 
-let appState = {
-    showContent: false
-};
-
-const MyProgram = Compose.application(ComposeDemo(appState, postsData), document.getElementById("root"));
+const MyProgram = Compose.application(ComposeDemo, document.getElementById("root"));
 
 /*
 Compose.application = function (rootComponent, DOMNode, options);
@@ -1201,51 +1293,4 @@ options: Object
    });
 */
 
-},{"../core":7,"../http":11,"./Header":13}],15:[function(require,module,exports){
-module.exports = {
-    assign: require("./src/assign"),
-    clone: require("./src/clone")
-};
-
-},{"./src/assign":16,"./src/clone":17}],16:[function(require,module,exports){
-const clone = require("./clone");
-
-/**
- * @function assign
- * @description Creates a new object changing the values of the `obj` with the ones in `source`.
- * @param {Object} obj - The original object.
- * @param {Object} source - An object that will overwrite (or add) values from the original object.
- * @returns {Object} a new object with new assigned values.
- */
-function assign(obj, source) {
-    let newObj = clone(obj);
-    let baseAssign = Object.assign;
-
-    if (!baseAssign) {
-        baseAssign = function manualAssign(obj, source) {
-            for (let key in source) {
-                obj[key] = source[key];
-            }
-        }
-    }
-
-    return baseAssign(newObj, source);
-}
-
-module.exports = assign;
-
-},{"./clone":17}],17:[function(require,module,exports){
-/**
- * @function clone
- * @description Creates a shallow or deep clone of an object.
- * @param {Object} obj - The original object to clone.
- * @param {Boolean} deepClone - A flag to toggle the deepClone.
- * @returns {Object} a new object cloned from the previous one.
- */
-function clone(obj, deepClone) {
-    return JSON.parse(JSON.stringify(obj));
-}
-
-module.exports = clone;
-
-},{}]},{},[14]);
+},{"../core":8,"../http":17,"./Header":19}]},{},[20]);
