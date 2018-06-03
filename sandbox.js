@@ -674,7 +674,7 @@ function ascending(a, b) {
     return a > b ? 1 : -1;
 }
 
-},{"./UpdateOperation":5,"./render":10,"./utils":11}],3:[function(require,module,exports){
+},{"./UpdateOperation":5,"./render":8,"./utils":9}],3:[function(require,module,exports){
 const Component = require("./Component");
 const errors = require("./errors");
 const Text = require("./Text");
@@ -766,7 +766,7 @@ function parseProperties(properties) {
 
 module.exports = ComposeComponent;
 
-},{"./Component":1,"./Text":4,"./errors":6,"./utils":11}],4:[function(require,module,exports){
+},{"./Component":1,"./Text":4,"./errors":6,"./utils":9}],4:[function(require,module,exports){
 function Text(text) {
     this.text = String(text);
 }
@@ -825,39 +825,6 @@ module.exports = {
 };
 
 },{"./ComposeApplication":2,"./ComposeComponent":3}],8:[function(require,module,exports){
-var assign = require("./src/assign");
-
-module.exports = {
-    assign: assign
-};
-
-},{"./src/assign":9}],9:[function(require,module,exports){
-/**
- * @function assign
- * @description Creates a new object changing the values of the `obj` with the ones in `source`.
- * @param {Object} obj - The original object.
- * @param {Object} source - An object that will overwrite (or add) values from the original object.
- * @returns {Object} a new object with new assigned values.
- */
-function assign(obj, source) {
-    // TODO: Use a copy of the original obj.
-    let newObj = obj;
-    let baseAssign = Object.assign;
-
-    if (!baseAssign) {
-        baseAssign = function manualAssign(obj, source) {
-            for (let key in source) {
-                obj[key] = source[key];
-            }
-        }
-    }
-
-    return baseAssign(newObj, source);
-}
-
-module.exports = assign;
-
-},{}],10:[function(require,module,exports){
 const elnawejs = require("elnawejs");
 const utils = require("./utils");
 
@@ -899,7 +866,13 @@ function render(element, options) {
             // TODO: check this! Should be safer
             node[propName] = undefined;
         } else if (typeof propValue === "object") {
-            elnawejs.assign(node[propName], propValue);
+            if (propName === "style") {
+                for (let key in propValue) {
+                    node.style[key] = propValue[key];
+                }
+            } else {
+                elnawe.assign(node[propName], propValue);
+            }
         } else {
             node[propName] = props[propName];
         }
@@ -920,7 +893,7 @@ function render(element, options) {
 
 module.exports = render;
 
-},{"./utils":11,"elnawejs":8}],11:[function(require,module,exports){
+},{"./utils":9,"elnawejs":15}],9:[function(require,module,exports){
 // TODO: Add docs
 const Component = require("./Component");
 const Text = require("./Text");
@@ -953,7 +926,7 @@ module.exports = {
     isText: isText
 };
 
-},{"./Component":1,"./Text":4}],12:[function(require,module,exports){
+},{"./Component":1,"./Text":4}],10:[function(require,module,exports){
 /**
  * @function get
  * @description Get function.
@@ -1004,7 +977,7 @@ function parseResponse(response) {
 
 module.exports = get;
 
-},{}],13:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 /**
  * The Http module
  * @module @compose/http
@@ -1018,7 +991,7 @@ module.exports = {
     post: post
 };
 
-},{"./get":12,"./post":14}],14:[function(require,module,exports){
+},{"./get":10,"./post":12}],12:[function(require,module,exports){
 /**
  * Post request module.
  * @module @compose/http/post
@@ -1077,7 +1050,7 @@ function parseResponse(response) {
 
 module.exports = post;
 
-},{}],15:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 const Compose = require("../core");
 
 function Header() {
@@ -1097,7 +1070,7 @@ function Title() {
 
 module.exports = Header;
 
-},{"../core":7}],16:[function(require,module,exports){
+},{"../core":7}],14:[function(require,module,exports){
 // TODO: Handle a tree for the Virtual DOM
 // TODO: Add logic to push Virtual DOM tree into the real DOM
 // TODO: Add logic to patch the DOM with the Virtual DOM
@@ -1228,4 +1201,51 @@ options: Object
    });
 */
 
-},{"../core":7,"../http":13,"./Header":15}]},{},[16]);
+},{"../core":7,"../http":11,"./Header":13}],15:[function(require,module,exports){
+module.exports = {
+    assign: require("./src/assign"),
+    clone: require("./src/clone")
+};
+
+},{"./src/assign":16,"./src/clone":17}],16:[function(require,module,exports){
+const clone = require("./clone");
+
+/**
+ * @function assign
+ * @description Creates a new object changing the values of the `obj` with the ones in `source`.
+ * @param {Object} obj - The original object.
+ * @param {Object} source - An object that will overwrite (or add) values from the original object.
+ * @returns {Object} a new object with new assigned values.
+ */
+function assign(obj, source) {
+    let newObj = clone(obj);
+    let baseAssign = Object.assign;
+
+    if (!baseAssign) {
+        baseAssign = function manualAssign(obj, source) {
+            for (let key in source) {
+                obj[key] = source[key];
+            }
+        }
+    }
+
+    return baseAssign(newObj, source);
+}
+
+module.exports = assign;
+
+},{"./clone":17}],17:[function(require,module,exports){
+/**
+ * @function clone
+ * @description Creates a shallow or deep clone of an object.
+ * @param {Object} obj - The original object to clone.
+ * @param {Boolean} deepClone - A flag to toggle the deepClone.
+ * @returns {Object} a new object cloned from the previous one.
+ */
+function clone(obj, deepClone) {
+    return JSON.parse(JSON.stringify(obj));
+}
+
+module.exports = clone;
+
+},{}]},{},[14]);

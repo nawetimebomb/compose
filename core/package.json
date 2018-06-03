@@ -20,8 +20,7 @@
   },
   "homepage": "https://github.com/elnawe/cmps#readme",
   "dependencies": {
-    "elnawejs": "^0.1.0",
-    "ev-store": "^7.0.0",
+    "elnawejs": "^0.1.1",
     "immutable": "^3.8.2"
   },
   "devDependencies": {}

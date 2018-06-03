@@ -39,7 +39,13 @@ function render(element, options) {
             // TODO: check this! Should be safer
             node[propName] = undefined;
         } else if (typeof propValue === "object") {
-            elnawejs.assign(node[propName], propValue);
+            if (propName === "style") {
+                for (let key in propValue) {
+                    node.style[key] = propValue[key];
+                }
+            } else {
+                elnawe.assign(node[propName], propValue);
+            }
         } else {
             node[propName] = props[propName];
         }
