@@ -43,6 +43,16 @@ function render(element, options) {
                 for (let key in propValue) {
                     node.style[key] = propValue[key];
                 }
+            } else if (propName === "className") {
+                let classes = [];
+
+                for (let key in propValue) {
+                    if (propValue[key]) {
+                        classes.push(key);
+                    }
+                }
+
+                node[propName] = classes.join(" ");
             } else {
                 elnawe.assign(node[propName], propValue);
             }

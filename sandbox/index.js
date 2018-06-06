@@ -97,7 +97,12 @@ function ComposeDemo(state) {
     }
 
     return Compose.component("div", {
-        className: "my-div"
+        className: {
+            "my-div": true,
+            "this-is-not-there": false,
+            "another-class": true,
+            "showing-content": (state.showContent)
+        }
     }, [
         Header(),
         "This is a Compose Demo: ",

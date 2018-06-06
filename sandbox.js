@@ -578,7 +578,7 @@ function initApplication(appComponent, ownerDOMElement) {
         return node;
     })(component, ownerDOMElement, elnawejs.clone(state));
 
-    // clean-up unnecessary memory.
+    // clean-up unnecessary memory allocation.
     appComponent = undefined;
     ownerDOMElement = undefined;
 
@@ -703,6 +703,16 @@ function render(element, options) {
                 for (let key in propValue) {
                     node.style[key] = propValue[key];
                 }
+            } else if (propName === "className") {
+                let classes = [];
+
+                for (let key in propValue) {
+                    if (propValue[key]) {
+                        classes.push(key);
+                    }
+                }
+
+                node[propName] = classes.join(" ");
             } else {
                 elnawe.assign(node[propName], propValue);
             }
@@ -1267,7 +1277,12 @@ function ComposeDemo(state) {
     }
 
     return Compose.component("div", {
-        className: "my-div"
+        className: {
+            "my-div": true,
+            "this-is-not-there": false,
+            "another-class": true,
+            "showing-content": (state.showContent)
+        }
     }, [
         Header(),
         "This is a Compose Demo: ",
