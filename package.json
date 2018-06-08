@@ -24,9 +24,6 @@
     "url": "https://github.com/elnawe/cmps/issues"
   },
   "homepage": "https://github.com/elnawe/cmps#readme",
-  "dependencies": {
-    "immutable": "^3.8.2"
-  },
   "devDependencies": {
     "browserify": "^16.2.2"
   }

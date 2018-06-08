@@ -19,9 +19,9 @@ function ComposeApplication(appComponent, ownerDOMElement) {
         throw Error("Not an owner node");
     }
 
-    if (!appComponent || !utils.isChild(appComponent)) {
-        throw Error("Not a component");
-    }
+    // if (!appComponent || !utils.isChild(appComponent)) {
+    //     throw Error("Not a component");
+    // }
 
     return initApplication(appComponent, owner);
 };

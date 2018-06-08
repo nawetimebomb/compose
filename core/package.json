@@ -19,9 +19,22 @@
     "url": "https://github.com/elnawe/cmps/issues"
   },
   "homepage": "https://github.com/elnawe/cmps#readme",
-  "dependencies": {
-    "elnawejs": "^0.1.1",
-    "immutable": "^3.8.2"
+  "babel": {
+    "presets": "env",
+    "plugins": [
+      [
+        "transform-react-jsx",
+        {
+          "pragma": "Compose.component"
+        }
+      ]
+    ]
   },
-  "devDependencies": {}
+  "dependencies": {
+    "elnawejs": "^0.1.1"
+  },
+  "devDependencies": {
+    "babel-plugin-transform-react-jsx": "^6.24.1",
+    "babel-preset-env": "^1.7.0"
+  }
 }

@@ -3,14 +3,25 @@ const errors = require("./errors");
 const Text = require("./Text");
 const utils = require("./utils");
 
-function ComposeComponent(tagName, properties, children) {
+function ComposeComponent(tagName, properties) {
+    let rest = [];
+    let children = [];
+    let length = arguments.length;
     let childNodes = [];
     let tag, props, key, namespace;
 
-    // If second parameter is children instead of prop.
-    if (!children && utils.isChildren(properties)) {
-        children = properties;
-        props = {};
+    while (length-- > 2) rest.push(arguments[length]);
+
+    while (rest.length) {
+        let node = rest.pop();
+
+        if (node && node.pop) {
+            for (length = node.length; length--; ) {
+                rest.push(node[length]);
+            }
+        } else if (node != null && typeof node !== "boolean") {
+            children.push(node);
+        }
     }
 
     props = parseProperties(props || properties || {});
@@ -22,32 +33,28 @@ function ComposeComponent(tagName, properties, children) {
         props.key = undefined;
     }
 
-    if (children !== undefined && children !== null) {
-        if (Array.isArray(children)) {
-            for (let index = 0; index < children.length; index++) {
-                childNodes.push(parseChild(children[index], tag, props));
-            }
-        } else {
-            childNodes.push(parseChild(children, tag, props));
+    if (Array.isArray(children)) {
+        for (let index = 0; index < children.length; index++) {
+            childNodes.push(parseChild(children[index], tag, props));
         }
+    } else {
+        childNodes.push(parseChild(children, tag, props));
     }
 
     return new Component(tag, props, childNodes, key);
 }
 
 function parseChild(child, tag, properties) {
-    switch(typeof child) {
-    case "undefined":
+    if (child == null) {
         return;
-    case "string":
+    } else if (typeof child === "string" || typeof child === "number") {
         return new Text(child);
-    case "number":
-        return new Text(child);
-    case "function":
-        if (utils.isChild(child())) return child();
-    case "object":
-        if (utils.isChild(child)) return child;
-    default:
+    } else if (typeof child.tagName === "function") {
+        // Following this first because this is considered a component as well.
+        return child.tagName(child.properties || {});
+    } else if (utils.isChild(child)) {
+        return child;
+    } else {
         throw errors.UnexpectedElement({
             element: child,
             parent: {

@@ -3,7 +3,7 @@
 // TODO: Add logic to patch the DOM with the Virtual DOM
 // TODO: Add support to functions and object-like properties.
 
-const Compose = require("../core");
+import { h, application } from "../core";
 const Header = require("./Header");
 const http = require("../http");
 
@@ -85,37 +85,45 @@ function PostListComponent(posts) {
 }
 
 // A Compose framework demo Component
-function ComposeDemo(state) {
-    let contentComponent = "Current content state is: " + state.showContent;
-    let anotherChild = "";
+// function ComposeDemo(state) {
+//     let contentComponent = "Current content state is: " + state.showContent;
+//     let anotherChild = "";
 
-    if (state.showContent) {
-        anotherChild = Compose.component(
-            "p",
-            "This is another component that only is shown when the state changes"
-        );
-    }
+//     if (state.showContent) {
+//         anotherChild = Compose.component(
+//             "p",
+//             "This is another component that only is shown when the state changes"
+//         );
+//     }
 
-    return Compose.component("div", {
-        className: {
-            "my-div": true,
-            "this-is-not-there": false,
-            "another-class": true,
-            "showing-content": (state.showContent)
-        }
-    }, [
-        Header(),
-        "This is a Compose Demo: ",
-        button(),
-        Compose.component("button", { onClick: update_dom }, "Change State"),
-        contentComponent,
-        anotherChild,
-        undefined,
-        PostListComponent(state.posts)
-    ]);
-}
+//     return Compose.component("div", {
+//         className: {
+//             "my-div": true,
+//             "this-is-not-there": false,
+//             "another-class": true,
+//             "showing-content": (state.showContent)
+//         }
+//     }, [
+//         Header(),
+//         "This is a Compose Demo: ",
+//         button(),
+//         Compose.component("button", { onClick: update_dom }, "Change State"),
+//         contentComponent,
+//         anotherChild,
+//         undefined,
+//         PostListComponent(state.posts)
+//     ]);
+// }
 
-const MyProgram = Compose.application(ComposeDemo, document.getElementById("root"));
+let ComposeDemo = function () {
+    return (
+            <div>
+            Hello Sailor
+        </div>
+    );
+});
+
+const MyProgram = application(ComposeDemo, document.getElementById("root"));
 
 /*
 Compose.application = function (rootComponent, DOMNode, options);
