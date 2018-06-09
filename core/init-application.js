@@ -3,51 +3,49 @@ const elnawejs = require("elnawejs");
 const render = require("./render");
 const update = require("./update");
 const utils = require("./utils");
+const application = require("./Application");
 
 function initApplication(appComponent, ownerDOMElement) {
     // private variables
     const component = appComponent;
     let rootNode;
-    let state = {};
 
     // render initial application
-    rootNode = (function renderInitialApplication (component, owner, initialState) {
-        const rootComponent = component(initialState);
+    rootNode = (function renderInitialApplication(component, owner) {
+        const rootComponent = instantiateComponent();
         const node = render(rootComponent);
+
+        application.subscribe(shouldUpdateApp);
 
         owner.appendChild(node);
 
         return node;
-    })(component, ownerDOMElement, elnawejs.clone(state));
+    })(component, ownerDOMElement);
 
     // clean-up unnecessary memory allocation.
-    appComponent = undefined;
-    ownerDOMElement = undefined;
+    (function cleanUpMemoryAllocation() {
+        appComponent = undefined;
+        ownerDOMElement = undefined;
+    })();
 
-    return {
-        forceUpdate: function forceUpdate() {
-            let newComponent = component(state);
-            let changes = diff(rootNode, newComponent);
+    // private functions
+    function instantiateComponent() {
+        return component(application.getState(component.displayName), component.commands);
+    }
 
-            rootNode = update(rootNode, changes);
-        },
-        getState: function getState() {
-            return elnawejs.clone(state);
-        },
-        setState: function setState(stateChange) {
-            let newState = elnawejs.assign(state, stateChange);
-
-            if (this.shouldUpdate(newState)) {
-                state = newState;
-                this.forceUpdate();
-            }
-        },
-        shouldUpdate: function shouldUpdate(newState) {
-            // TODO: this shouldn't force the update.
-            // It should check if newState is equal to the current existing app state.
-            return true;
+    function shouldUpdateApp(oldState, newState) {
+        // Should check state
+        if (true) {
+            updateApp();
         }
-    };
+    }
+
+    function updateApp() {
+        let newComponent = instantiateComponent();
+        let changes = diff(rootNode, newComponent);
+
+        rootNode = update(rootNode, changes);
+    }
 }
 
 module.exports = initApplication;

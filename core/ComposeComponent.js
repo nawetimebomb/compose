@@ -1,3 +1,4 @@
+const application = require("./Application");
 const Component = require("./Component");
 const errors = require("./errors");
 const Text = require("./Text");
@@ -50,8 +51,13 @@ function parseChild(child, tag, properties) {
     } else if (typeof child === "string" || typeof child === "number") {
         return new Text(child);
     } else if (typeof child.tagName === "function") {
-        // Following this first because this is considered a component as well.
-        return child.tagName(child.properties || {});
+        let component = child.tagName;
+        let commands = component.commands;
+        let props = child.properties;
+        let state = application.getState(component.displayName);
+        let stateOrProps = !isEmpty(state) ? state : props;
+
+        return component(stateOrProps || {}, commands, props);
     } else if (utils.isChild(child)) {
         return child;
     } else {
@@ -63,6 +69,17 @@ function parseChild(child, tag, properties) {
             }
         });
     }
+}
+
+// MOVE THIS TO ELNAWEJS
+function isEmpty(obj) {
+    for (let key in obj) {
+        if (Object.hasOwnProperty.call(obj, key)) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 /**
