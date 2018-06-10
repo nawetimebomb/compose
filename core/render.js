@@ -38,6 +38,8 @@ function render(element, options) {
         if (propValue === undefined) {
             // TODO: check this! Should be safer
             node[propName] = undefined;
+        } else if (typeof propValue === "function") {
+            node[propName.toLowerCase()] = propValue;
         } else if (typeof propValue === "object") {
             if (propName === "style") {
                 for (let key in propValue) {

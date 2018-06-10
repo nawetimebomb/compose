@@ -18,7 +18,7 @@ module.exports = function createComponent(config) {
                 let command = commands[key];
 
                 newCommands[key] = function () {
-                    let result = command();
+                    let result = command(); // FIXME This is a bug where I'm not passing through the number of arguments received by the function caller. Consider first one could be event.
 
                     if (typeof result ===  "function") {
                         result = result(application.getState(name));

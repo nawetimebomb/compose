@@ -1,5 +1,7 @@
+const _ = require("lodash");
 const application = require("./Application");
 const Component = require("./Component");
+const elnawejs = require("elnawejs");
 const errors = require("./errors");
 const Text = require("./Text");
 const utils = require("./utils");
@@ -53,11 +55,16 @@ function parseChild(child, tag, properties) {
     } else if (typeof child.tagName === "function") {
         let component = child.tagName;
         let commands = component.commands;
+
+        // add children to props so component can transclude the content.
+        let newProps = _.assign({}, child.properties, { children: child.children });
+
+        // check for state. If exists, use state as first parameter, if not, use props.
         let props = child.properties;
         let state = application.getState(component.displayName);
-        let stateOrProps = !isEmpty(state) ? state : props;
+        let stateOrProps = !_.isEmpty(state) ? state : newProps;
 
-        return component(stateOrProps || {}, commands, props);
+        return component(stateOrProps || {}, commands, newProps);
     } else if (utils.isChild(child)) {
         return child;
     } else {
@@ -69,17 +76,6 @@ function parseChild(child, tag, properties) {
             }
         });
     }
-}
-
-// MOVE THIS TO ELNAWEJS
-function isEmpty(obj) {
-    for (let key in obj) {
-        if (Object.hasOwnProperty.call(obj, key)) {
-            return false;
-        }
-    }
-
-    return true;
 }
 
 /**
@@ -95,7 +91,7 @@ function parseProperties(properties) {
 
         switch (typeof propValue) {
         case "function":
-            result[propName.toLowerCase()] = propValue;
+            result[propName] = propValue;
         case "object":
             if (propValue instanceof Object && !Array.isArray(propValue)) {
                 result[propName] = propValue;

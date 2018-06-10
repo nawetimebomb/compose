@@ -31,7 +31,8 @@
     ]
   },
   "dependencies": {
-    "elnawejs": "^0.1.1"
+    "elnawejs": "^0.1.1",
+    "lodash": "^4.17.10"
   },
   "devDependencies": {
     "babel-plugin-transform-react-jsx": "^6.24.1",
