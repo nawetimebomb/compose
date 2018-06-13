@@ -1,4 +1,4 @@
-const elnawejs = require("elnawejs");
+const _ = require("lodash");
 const utils = require("./utils");
 
 function render(element, options) {
@@ -47,16 +47,19 @@ function render(element, options) {
                 }
             } else if (propName === "className") {
                 let classes = [];
-
-                for (let key in propValue) {
-                    if (propValue[key]) {
-                        classes.push(key);
+                if (_.isArray(propValue)) {
+                    classes = propValue;
+                } else {
+                    for (let key in propValue) {
+                        if (propValue[key]) {
+                            classes.push(key);
+                        }
                     }
                 }
 
-                node[propName] = classes.join(" ");
+                node.className = classes.join(" ");
             } else {
-                elnawe.assign(node[propName], propValue);
+                node[propName] = propValue;
             }
         } else {
             node[propName] = props[propName];

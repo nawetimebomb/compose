@@ -1,5 +1,5 @@
 {
-  "name": "@compose/core",
+  "name": "@compose/http",
   "version": "0.1.0",
   "description": "Compose framework Http module",
   "main": "index.js",

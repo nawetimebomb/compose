@@ -7,6 +7,10 @@ module.exports = function createComponent(config) {
     let commands = config.commands;
     let state = config.state;
 
+    if (!name && state) {
+        throw Error("Component has no displayName. You should add displayName as a property of `Compose.createComponent`");
+    }
+
     // Need to find a way to consistenly get the name of the component.
     if (name && state) {
         component.displayName = name;
@@ -17,8 +21,9 @@ module.exports = function createComponent(config) {
             for (let key in commands) {
                 let command = commands[key];
 
-                newCommands[key] = function () {
-                    let result = command(); // FIXME This is a bug where I'm not passing through the number of arguments received by the function caller. Consider first one could be event.
+                newCommands[key] = function newCommand() {
+                    // FIXME This is a bug where I'm not passing through the number of arguments received by the function caller. Consider first one could be event.
+                    let result = command(arguments[0]);
 
                     if (typeof result ===  "function") {
                         result = result(application.getState(name));
@@ -32,6 +37,12 @@ module.exports = function createComponent(config) {
         } else {
             throw Error("Component has state but there are no commands to change it");
         }
+    }
+
+    if (application.isFirstRender && config.onCreate) {
+        application.registerLifecycle(function onCreate() {
+            config.onCreate(newCommands);
+        });
     }
 
     return component;

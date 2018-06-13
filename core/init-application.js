@@ -19,6 +19,8 @@ function initApplication(appComponent, ownerDOMElement) {
 
         owner.appendChild(node);
 
+        application.setupFirstRender();
+
         return node;
     })(component, ownerDOMElement);
 

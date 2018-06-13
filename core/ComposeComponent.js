@@ -27,7 +27,7 @@ function ComposeComponent(tagName, properties) {
         }
     }
 
-    props = parseProperties(props || properties || {});
+    props = props || properties || {};
     tag = tagName;
 
     // Support and save key.
@@ -64,7 +64,7 @@ function parseChild(child, tag, properties) {
         let state = application.getState(component.displayName);
         let stateOrProps = !_.isEmpty(state) ? state : newProps;
 
-        return component(stateOrProps || {}, commands, newProps);
+        return component(stateOrProps, commands, newProps);
     } else if (utils.isChild(child)) {
         return child;
     } else {
