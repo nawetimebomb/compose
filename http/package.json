@@ -16,7 +16,7 @@
     "http"
   ],
   "author": "Nahuel J. Sacchetti",
-  "license": "MIT",
+  "license": "GPLv3",
   "bugs": {
     "url": "https://github.com/elnawe/compose/issues"
   },
